@@ -1,0 +1,6 @@
+build/
+Screenshots/
+screenshots/
+
+# OS/editor noise
+.DS_Store
