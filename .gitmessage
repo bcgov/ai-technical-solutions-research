@@ -1,0 +1,6 @@
+type(scope): short summary
+
+What: what changed
+Scope: pages/files/areas touched
+Why: reason for change
+Change-Type: white-paper|doc-update|site-update|build-update

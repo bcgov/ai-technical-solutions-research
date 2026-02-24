@@ -37,3 +37,17 @@ This repo includes a GitHub Actions workflow at `.github/workflows/pages.yml` th
 Repository setting to enable:
 
 - `Settings` -> `Pages` -> `Source` -> select `GitHub Actions`
+
+## Commit Message Enforcement (Git Hook)
+
+This repo uses a local Git `commit-msg` hook to enforce:
+
+- `type(scope): summary` title format
+- required body fields: `What:`, `Scope:`, `Why:`
+- required classification: `Change-Type: white-paper|doc-update|site-update|build-update`
+
+Install once per clone:
+
+```bash
+bash scripts/setup-git-hooks.sh
+```

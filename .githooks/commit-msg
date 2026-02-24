@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+message_file="${1:-}"
+if [[ -z "${message_file}" || ! -f "${message_file}" ]]; then
+  exit 0
+fi
+
+first_line="$(sed -n '1p' "${message_file}" | tr -d '\r')"
+
+# Keep merge/revert flows unblocked.
+if [[ "${first_line}" =~ ^(Merge|Revert) ]]; then
+  exit 0
+fi
+
+header_regex='^(feat|fix|docs|chore|refactor|style|test|build|ci)\((white-paper|docs|site|compute|publications|workflow|content|infra)\): .{8,72}$'
+if ! [[ "${first_line}" =~ ${header_regex} ]]; then
+  cat >&2 <<'EOF'
+Invalid commit title.
+
+Use:
+  type(scope): short summary
+
+Example:
+  docs(site): refine compute page copy
+
+Allowed type:
+  feat, fix, docs, chore, refactor, style, test, build, ci
+
+Allowed scope:
+  white-paper, docs, site, compute, publications, workflow, content, infra
+EOF
+  exit 1
+fi
+
+body="$(tail -n +2 "${message_file}" | tr -d '\r')"
+missing=0
+
+for field in What Scope Why; do
+  if ! printf '%s\n' "${body}" | grep -Eq "^${field}[[:space:]]*:.+"; then
+    echo "Missing required field: ${field}:" >&2
+    missing=1
+  fi
+done
+
+if ! printf '%s\n' "${body}" | grep -Eq '^Change-Type[[:space:]]*:[[:space:]]*(white-paper|doc-update|site-update|build-update)$'; then
+  cat >&2 <<'EOF'
+Missing or invalid Change-Type.
+
+Use exactly one of:
+  Change-Type: white-paper
+  Change-Type: doc-update
+  Change-Type: site-update
+  Change-Type: build-update
+EOF
+  missing=1
+fi
+
+if [[ "${missing}" -ne 0 ]]; then
+  cat >&2 <<'EOF'
+
+Expected commit message format:
+
+type(scope): short summary
+
+What: what changed
+Scope: pages/files/areas touched
+Why: reason for change
+Change-Type: white-paper|doc-update|site-update|build-update
+EOF
+  exit 1
+fi
