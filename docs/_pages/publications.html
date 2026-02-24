@@ -1,0 +1,49 @@
+<!-- TITLE: Publications | Research -->
+<!-- DESCRIPTION: Publication library for BC Government research papers and briefs. -->
+<!-- NAV: publications -->
+<main id="top">
+  <section class="hero hero-simple reveal">
+    <div class="hero-simple-title">
+      <p class="eyebrow">Publications</p>
+      <h1>Research outputs and technical papers</h1>
+    </div>
+    <div class="hero-simple-copy">
+      <p>
+        A simple publication table of papers, briefs, and technical references for implementation teams.
+      </p>
+      <p class="hero-inline-links">
+        <strong>See also:</strong>
+        <a href="compute.html">Compute</a>
+        <a href="index.html">Home</a>
+      </p>
+    </div>
+  </section>
+
+  <section class="publications reveal">
+    <div class="section-heading">
+      <p class="eyebrow">Library</p>
+      <h2>Publications</h2>
+    </div>
+    <div class="publication-filters">
+      <input id="searchInput" type="search" placeholder="Search publications..." aria-label="Search publications">
+      <select id="streamFilter" aria-label="Filter by stream">
+        <option value="all">All Streams</option>
+        <option value="Compute">Compute</option>
+      </select>
+    </div>
+    <div class="publication-table-wrap">
+      <table class="publication-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Title</th>
+            <th>Stream</th>
+            <th>Type</th>
+          </tr>
+        </thead>
+        <tbody id="publicationRows"></tbody>
+      </table>
+    </div>
+    <p id="emptyState" class="empty-state" hidden>No publications match this filter.</p>
+  </section>
+</main>

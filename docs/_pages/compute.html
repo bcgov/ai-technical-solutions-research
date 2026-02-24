@@ -1,0 +1,115 @@
+<!-- TITLE: Compute | Research -->
+<!-- DESCRIPTION: Compute research for BC Government AI delivery, including model fit, cost, performance profiling, and resource planning. -->
+<!-- NAV: compute -->
+<main id="top">
+  <section class="topic-hero reveal">
+    <div class="topic-left">
+      <a class="topic-back" href="index.html">&larr; Back to Home</a>
+      <h1>Compute</h1>
+    </div>
+    <div class="topic-right">
+      <p class="topic-lead">
+        Compute research helps BC Gov use AI in a cost-effective and safe way. We test what runs best on available
+        hardware, how resources should be planned, and how to choose the right model setup for each application.
+      </p>
+      <p class="hero-inline-links">
+        <strong>In plain terms:</strong>
+        <a href="#procurement">Procurement</a>
+        <a href="#performance">Performance</a>
+        <a href="#model-fit">Model Fit</a>
+        <a href="#safety">Safe Operations</a>
+      </p>
+    </div>
+  </section>
+
+  <section id="procurement" class="scope reveal">
+    <div class="section-heading">
+      <p class="eyebrow">Why It Matters</p>
+      <h2>How compute research supports decisions</h2>
+    </div>
+    <div class="compute-grid">
+      <article class="scope-card">
+        <h3>Procurement decisions</h3>
+        <p>Evidence on CPU vs GPU fit helps buy the right hardware for real workloads and budgets.</p>
+      </article>
+      <article class="scope-card">
+        <h3>Resource planning</h3>
+        <p>Capacity planning avoids over-provisioning and under-provisioning across on-prem and cloud environments.</p>
+      </article>
+      <article class="scope-card">
+        <h3>Model-to-application fit</h3>
+        <p>Different services need different model sizes, context lengths, and response speed targets.</p>
+      </article>
+      <article class="scope-card">
+        <h3>Operational safety</h3>
+        <p>Measured limits reduce outages and protect service quality when usage grows or model versions change.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="performance" class="scope reveal">
+    <div class="section-heading">
+      <p class="eyebrow">What We Analyze</p>
+      <h2>Compute factors in plain language</h2>
+    </div>
+    <div class="compute-grid compute-grid-2">
+      <article class="scope-card">
+        <h3>Prompt and context length</h3>
+        <p>Longer prompts increase memory pressure and can raise latency; this affects concurrency and user experience.</p>
+      </article>
+      <article class="scope-card">
+        <h3>Model type and architecture</h3>
+        <p>Dense vs mixture models, parameter size, and architecture choices all change compute and memory behavior.</p>
+      </article>
+      <article class="scope-card">
+        <h3>Quantization formats</h3>
+        <p>Formats such as lower precision can reduce memory and cost, with trade-offs in quality and stability.</p>
+      </article>
+      <article class="scope-card">
+        <h3>CPU and GPU utilization</h3>
+        <p>Profiling shows whether workloads are compute-bound or memory-bound and where bottlenecks actually sit.</p>
+      </article>
+      <article class="scope-card">
+        <h3>KV cache behavior</h3>
+        <p>Context growth can expand KV cache quickly; we test limits so memory does not blow up during production use.</p>
+      </article>
+      <article class="scope-card">
+        <h3>Throughput and latency</h3>
+        <p>We measure tokens-per-second and response time to align technical setup with service-level expectations.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="model-fit" class="publications reveal">
+    <div class="section-heading">
+      <p class="eyebrow">Compute Papers</p>
+      <h2>Published compute research</h2>
+    </div>
+    <div class="publication-table-wrap">
+      <table class="publication-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Title</th>
+            <th>Stream</th>
+            <th>Type</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Nov 2025</td>
+            <td><a class="paper-title" href="assets/papers/bc_server_cpu_validation_and_integration_report.pdf" target="_blank" rel="noopener noreferrer">BC Server CPU Validation and Integration Report</a></td>
+            <td>Compute</td>
+            <td>PDF</td>
+          </tr>
+          <tr>
+            <td>Nov 2025</td>
+            <td><a class="paper-title" href="assets/papers/bc_server_cpu_recommendation_package.pdf" target="_blank" rel="noopener noreferrer">BC Server CPU Recommendation Package</a></td>
+            <td>Compute</td>
+            <td>PDF</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
