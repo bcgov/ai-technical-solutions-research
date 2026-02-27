@@ -51,6 +51,7 @@ for page in "$PAGES_DIR"/*.html; do
 
   header="$(cat "$PARTIALS_DIR/header.html")"
   footer="$(cat "$PARTIALS_DIR/footer.html")"
+  publication_table_partial="$(cat "$PARTIALS_DIR/publication_table.html")"
   content="$(sed '/^[[:space:]]*<!--[[:space:]]*\(TITLE\|DESCRIPTION\|NAV\):.*-->[[:space:]]*$/d' "$page")"
 
   document="$header"$'\n'"$content"$'\n'"$footer"
@@ -60,6 +61,7 @@ for page in "$PAGES_DIR"/*.html; do
   document="${document//\{\{YEAR\}\}/$CURRENT_YEAR}"
   document="${document//\{\{CURRENT_MONTH\}\}/$CURRENT_MONTH}"
   document="${document//\{\{CURRENT_DATE\}\}/$CURRENT_DATE}"
+  document="${document//\{\{PARTIAL_PUBLICATION_TABLE\}\}/$publication_table_partial}"
 
   if [[ -n "$nav_active" ]]; then
     nav_key="$(echo "$nav_active" | tr '[:lower:]-' '[:upper:]_')"

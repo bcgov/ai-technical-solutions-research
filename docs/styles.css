@@ -630,6 +630,56 @@ p {
   color: var(--bc-blue-deep);
 }
 
+.stream-link {
+  color: var(--bc-blue-deep);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.stream-link:hover,
+.stream-link:focus-visible {
+  color: var(--bc-blue);
+}
+
+.benchmark-list {
+  margin: 0.35rem 0 0.85rem;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.benchmark-inline-heading {
+  margin: 0.8rem 0 0.3rem;
+  color: var(--ink-strong);
+  font-size: 0.92rem;
+}
+
+.benchmark-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 0.8rem;
+}
+
+.benchmark-table {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.benchmark-table th,
+.benchmark-table td {
+  text-align: left;
+  padding: 0.42rem 0.45rem;
+  border-bottom: 1px solid #d8dde4;
+  vertical-align: top;
+}
+
+.benchmark-table th {
+  color: var(--ink-strong);
+  border-bottom: 1px solid #bfc7d2;
+}
+
 .empty-state {
   margin-top: 0.75rem;
   color: var(--ink-soft);
