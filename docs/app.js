@@ -127,6 +127,22 @@ const aiOperatorBenchmarkDetailsHtml = `
 
 const publications = [
   {
+    date: "2026-05-25",
+    title: "Connected Government Services: Using AI to Help Applications Work Together",
+    stream: "Connected Services",
+    type: "PDF",
+    url: "assets/papers/bc_connected_government_services_executive_report.pdf",
+    summary: "Executive report assessing how AI-enabled applications can coordinate across public-sector service boundaries, with a working SDPR + Water Permits + BC Laws proof of concept."
+  },
+  {
+    date: "2026-05-21",
+    title: "Cross-Engine OCR Extraction Comparison Report",
+    stream: "Document Intelligence",
+    type: "PDF",
+    url: "assets/papers/bc_ocr_engine_comparison_report.pdf",
+    summary: "Head-to-head comparison of eight OCR extraction engines on SDPR Monthly Reports, scoring accuracy across 40 forms and measuring per-page cost."
+  },
+  {
     date: "2025-12-16",
     title: "A.I Operator 5th Gen Xeon LLM Benchmarks",
     stream: "Compute",
