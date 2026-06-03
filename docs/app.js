@@ -129,18 +129,25 @@ const publications = [
   {
     date: "2026-05-25",
     title: "Connected Government Services: Using AI to Help Applications Work Together",
-    stream: "Connected Services",
+    stream: "Agentic Systems",
     type: "PDF",
     url: "assets/papers/bc_connected_government_services_executive_report.pdf",
-    summary: "Executive report assessing how AI-enabled applications can coordinate across public-sector service boundaries, with a working SDPR + Water Permits + BC Laws proof of concept."
+    summary: [
+      "Executive report assessing whether independently-operated BC Gov applications can coordinate through AI to answer a broader citizen-service question. It is demonstrated with a working proof of concept that links SDPR Monthly Report review, water-permit triage, and a Neo4j-backed BC Laws reference layer through a real Document Intelligence OCR boundary.",
+      "The core finding: value comes not from a single AI tool or framework but from making applications discoverable, callable, auditable, and able to collaborate safely across program boundaries — each application keeping its own data, rules, security boundary, and accountable owner while a coordinator routes questions and combines the responses."
+    ].join("\n\n")
   },
   {
     date: "2026-05-21",
     title: "Cross-Engine OCR Extraction Comparison Report",
-    stream: "Document Intelligence",
+    stream: "Accuracy",
     type: "PDF",
     url: "assets/papers/bc_ocr_engine_comparison_report.pdf",
-    summary: "Head-to-head comparison of eight OCR extraction engines on SDPR Monthly Reports, scoring accuracy across 40 forms and measuring per-page cost."
+    summary: [
+      "Head-to-head comparison of eight approaches for turning hand-filled SDPR Monthly Reports into structured data, scored on both extraction accuracy and per-page cost across a mix of real and synthetic forms.",
+      "A custom two-stage pipeline — Azure Document Intelligence OCR paired with a GPT-5.2 call that receives both the form image and the OCR text — gave the strongest accuracy-to-cost balance observed on this workload.",
+      "Findings are directional and specific to hand-filled key-value extraction: modern generative engines now match or beat the older supervised template without re-training, while the cheapest option trades accuracy for price by missing handwriting its OCR layer cannot recover."
+    ].join("\n\n")
   },
   {
     date: "2025-12-16",
@@ -230,9 +237,15 @@ function renderRows(items) {
     const summaryBody = document.createElement("div");
     summaryBody.className = "paper-accordion-body";
 
-    const summaryText = document.createElement("p");
-    summaryText.textContent = paper.summary;
-    summaryBody.appendChild(summaryText);
+    paper.summary
+      .split(/\n{2,}/)
+      .map((para) => para.trim())
+      .filter((para) => para.length > 0)
+      .forEach((para) => {
+        const summaryText = document.createElement("p");
+        summaryText.textContent = para;
+        summaryBody.appendChild(summaryText);
+      });
 
     if (paper.detailsHtml) {
       const detailsNode = document.createElement("div");
