@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sovereign AI Compute Guide — How to Request, Size, and Utilize AI Resources on OpenShift</title>
+<style>
+  @page {
+    size: letter;
+    margin: 1in 0.9in;
+  }
+  :root {
+    --bc-blue: #013366;
+    --bc-gold: #E3A82B;
+    --bc-light: #F2F2F2;
+    --bc-dark: #1A1A1A;
+    --accent-green: #2E8540;
+    --accent-red: #D8292F;
+    --profile-a: #2E8540;
+    --profile-b: #1A5276;
+    --profile-c: #7D3C98;
+    --profile-d: #CA6F1E;
+    --profile-e: #5D6D7E;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', 'Liberation Sans', Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.45;
+    color: var(--bc-dark);
+    background: #fff;
+    max-width: 8.5in;
+    margin: 0 auto;
+    padding: 0.5in 0.6in;
+  }
+
+  /* ─── Header ─── */
+  .doc-header {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    border-bottom: 3px solid var(--bc-blue);
+    padding-bottom: 16px;
+    margin-bottom: 24px;
+  }
+  .doc-header img {
+    height: 54px;
+    width: auto;
+  }
+  .doc-header-text {
+    flex: 1;
+  }
+  .doc-header-text h1 {
+    font-size: 16pt;
+    color: var(--bc-blue);
+    font-weight: 700;
+    margin: 0 0 2px;
+    letter-spacing: -0.02em;
+  }
+  .doc-header-text .subtitle {
+    font-size: 12pt;
+    color: var(--bc-blue);
+    font-weight: 500;
+    margin-top: 4px;
+  }
+  .doc-meta {
+    text-align: right;
+    font-size: 9pt;
+    color: #666;
+    line-height: 1.35;
+  }
+
+  /* ─── Section headers ─── */
+  h2 {
+    font-size: 13pt;
+    color: var(--bc-blue);
+    border-bottom: 2px solid var(--bc-gold);
+    padding-bottom: 4px;
+    margin: 28px 0 12px;
+    font-weight: 700;
+  }
+  h3 {
+    font-size: 11.5pt;
+    color: var(--bc-blue);
+    margin: 18px 0 8px;
+    font-weight: 600;
+  }
+
+  /* ─── Body ─── */
+  p { margin: 0 0 10px; }
+  ul, ol { margin: 0 0 12px 20px; }
+  li { margin-bottom: 4px; }
+  strong { font-weight: 700; }
+
+  /* ─── Tables ─── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 16px;
+    font-size: 10pt;
+  }
+  th {
+    background: var(--bc-blue);
+    color: #fff;
+    font-weight: 600;
+    text-align: left;
+    padding: 6px 10px;
+    font-size: 9.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  td {
+    padding: 5px 10px;
+    border-bottom: 1px solid #ddd;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: #f8f9fa; }
+  tr.total td {
+    font-weight: 700;
+    border-top: 2px solid var(--bc-blue);
+    background: #eef3f8;
+  }
+  tr.remaining td {
+    font-weight: 600;
+    color: var(--accent-green);
+  }
+
+  /* ─── Profile badges ─── */
+  .profile-badge {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 4px;
+    font-size: 9pt;
+    font-weight: 700;
+    color: #fff;
+  }
+  .profile-a { background: var(--profile-a); }
+  .profile-b { background: var(--profile-b); }
+  .profile-c { background: var(--profile-c); }
+  .profile-d { background: var(--profile-d); }
+  .profile-e { background: var(--profile-e); }
+
+  /* ─── Callout boxes ─── */
+  .callout {
+    background: #f0f4f8;
+    border-left: 4px solid var(--bc-blue);
+    padding: 12px 16px;
+    margin: 14px 0;
+    font-size: 10.5pt;
+  }
+  .callout-gold {
+    background: #fdf8e8;
+    border-left-color: var(--bc-gold);
+  }
+  .callout-green {
+    background: #e8f5e9;
+    border-left-color: var(--accent-green);
+  }
+  .callout-draft {
+    background: #fff0f2;
+    border-left-color: var(--accent-red);
+  }
+  .draft-label {
+    display: inline-block;
+    margin-bottom: 6px;
+    padding: 2px 8px;
+    border: 1px solid var(--accent-red);
+    border-radius: 4px;
+    color: var(--accent-red);
+    font-size: 8.5pt;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .callout strong { color: var(--bc-blue); }
+
+  /* ─── Formula block ─── */
+  .formula {
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px 16px;
+    margin: 10px 0 14px;
+    font-family: 'Consolas', 'Liberation Mono', monospace;
+    font-size: 10pt;
+    line-height: 1.5;
+    white-space: pre-wrap;
+  }
+
+  /* ─── Candidate workload patterns ─── */
+  .candidate-workloads {
+    page-break-inside: avoid;
+  }
+  .candidate-workloads table {
+    font-size: 8.8pt;
+  }
+  .candidate-workloads th,
+  .candidate-workloads td {
+    padding: 5px 7px;
+    vertical-align: top;
+  }
+  .candidate-workloads .pattern-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 18px;
+    margin: 8px 0 0;
+    padding-left: 18px;
+  }
+  .candidate-workloads .pattern-grid li {
+    margin: 0;
+  }
+  @media print {
+    .candidate-workloads .pattern-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  /* ─── Footer ─── */
+  .doc-footer {
+    margin-top: 32px;
+    padding-top: 12px;
+    border-top: 2px solid var(--bc-blue);
+    font-size: 9pt;
+    color: #666;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* ─── Print ─── */
+  @media print {
+    body { padding: 0; font-size: 10.5pt; }
+    .doc-header { page-break-after: avoid; }
+    h2 { page-break-after: avoid; }
+    table { page-break-inside: avoid; }
+    .callout { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════════
+     HEADER
+     ════════════════════════════════════════════════════════════════ -->
+<div class="doc-header">
+  <img src="../connected-services-bc-logo.png" alt="Connected Services — Province of British Columbia">
+  <div class="doc-header-text">
+    <div class="draft-label">Draft / living document</div>
+    <h1>Sovereign AI Compute Guide</h1>
+    <div class="subtitle">How to Request, Size, and Utilize AI Resources on OpenShift</div>
+  </div>
+  <div class="doc-meta">
+    <strong>Connected Services</strong><br>
+    Citizens' Services (CITZ)<br>
+    June 2026<br>
+    <em>Classification: Internal</em>
+  </div>
+</div>
+
+<div class="callout callout-draft">
+  <strong>Draft / living document:</strong> This guide is currently being updated as Platform, ADSL, vendor, licensing, topology, and early adopter workload details become clearer. Use it as a working sizing and planning aid, not as a final architecture decision.
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     1. PURPOSE
+     ════════════════════════════════════════════════════════════════ -->
+<h2>1. Purpose</h2>
+
+<p>This document helps <strong>platform teams and project owners</strong> understand how to run AI workloads on BC Government's sovereign compute infrastructure. It covers:</p>
+
+<ul>
+  <li><strong>How to request resources</strong> — what your application needs, why, and how to make a namespace request that the platform team can act on</li>
+  <li><strong>What tools are available</strong> — as the OpenShift AI Hub is upgraded with tools like vLLM, KServe, LLM Compressor, InstructLab, lm-eval, and Feast, this document helps teams navigate these tools without being overwhelmed</li>
+  <li><strong>How to utilize all available compute</strong> — GPUs, CPUs with AMX acceleration, memory, and network — for the best utilization across all workloads</li>
+  <li><strong>How platform teams can support allocation</strong> — from oversubscription to underutilization, guiding resource allocation based on actual workload needs</li>
+</ul>
+
+<div class="callout">
+  <strong>Why this document exists:</strong> Our current AI Hub has evolved from dual-socket 2nd-generation Xeon, to 5th-generation Xeon, and is now upgrading to dual-socket Xeon 6 with GPU acceleration. Through each upgrade, not all teams and projects fully utilized the resources available. The question is: if we provision these new resources, can teams actually use them? If there is underutilization, can teams that need more compute get more? Can we do distributed computing to combine more memory, more GPUs, more CPUs — and what would that look like? This report helps guide those decisions.
+</div>
+
+<div class="callout callout-green">
+  <strong>Practical output:</strong> This report is intended to help platform teams and application teams translate AI use cases into schedulable workload shapes. Before a project requests "AI compute" or "a GPU," the workload should be described by model size, precision, context length, concurrency, latency target, data movement, storage growth, CPU/RAM needs, GPU/MIG needs, and operational ownership. Platform teams can then map the request to a CPU-only profile, MIG slice, full GPU, full node, or future multi-node pattern. Application teams can use the same framework to ask better questions before designing an architecture around a tool or model.
+</div>
+
+<div class="candidate-workloads">
+  <h3>Candidate Sovereign AI Workload Patterns for CoE Investigation</h3>
+
+  <p>The following areas are candidate workload patterns for the AI Team of Excellence to investigate as the OpenShift AI Hub and sovereign compute environment mature. These are not commitments to build specific applications. The purpose is to identify reusable patterns that can help BC Government teams decide when to use local compute, cloud services, managed AI services, or a hybrid approach.</p>
+
+  <p>The investigation should include the <strong>ML/AI algorithms being used</strong>, the <strong>data pipeline shape</strong>, data quality and readiness, model evaluation methods, training or fine-tuning requirements, inference cost, latency, governance, and operational ownership. In many cases, the most important question is not which tool to use, but whether the data, algorithm, compute, and workflow actually fit the problem.</p>
+
+  <div class="callout">
+    <strong>Core question:</strong> not only <em>can this workload run on the platform?</em> The stronger question is: <em>what reusable AI pattern does this teach us that other BC Government teams can adopt?</em>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Area</th>
+        <th>Likely AI Pattern</th>
+        <th>Algorithms, Data Pipeline, and CoE Investigation</th>
+        <th>Why Sovereign / Local Compute Matters</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>BC Wildfire</strong></td>
+        <td>Custom models, geospatial prediction, data science workflows, model training, simulation, forecasting.</td>
+        <td>Forecasting, geospatial ML, computer vision, simulation, sensor/weather data pipelines, training and evaluation workflows, GPU/CPU scheduling, experiment tracking, model monitoring, and emergency-response latency.</td>
+        <td>Sensitive operational data, emergency response timelines, large geospatial datasets, and local compute during high-demand periods.</td>
+      </tr>
+      <tr>
+        <td><strong>BC Stats</strong></td>
+        <td>Foundational model evaluation, statistical analysis, data science, synthetic data review, and possible inference workflows.</td>
+        <td>Statistical models, forecasting, clustering, privacy-preserving analysis, synthetic-data methods, notebook workflows, local inference, model evaluation, data lineage, reproducibility, and governance.</td>
+        <td>Public-sector data stewardship, reproducible analysis, controlled model evaluation, and transparent methodology.</td>
+      </tr>
+      <tr>
+        <td><strong>Finance</strong></td>
+        <td>Fraud detection, anomaly detection, audit/compliance support, risk scoring, and local LLM-assisted analysis.</td>
+        <td>Anomaly detection, graph analytics, supervised classification, retrieval, LLM-assisted review, transaction/event pipelines, explainability, auditability, false positives, and governance.</td>
+        <td>Financial sensitivity, audit trails, controlled data access, and lower tolerance for external data exposure.</td>
+      </tr>
+      <tr>
+        <td><strong>HR / Policy</strong></td>
+        <td>Local LLM inference over HR policy, employment rules, internal guidance, case support, and semantic search.</td>
+        <td>Retrieval-augmented generation, semantic search, document pipelines, policy grounding, access controls, user feedback, citation quality, and escalation boundaries.</td>
+        <td>Sensitive employee information, policy interpretation risk, and controlled access to internal guidance.</td>
+      </tr>
+      <tr>
+        <td><strong>Legal / BC Laws</strong></td>
+        <td>Retrieval, grounding, legal/policy reference, citation support, local inference, and shared reference APIs.</td>
+        <td>Retrieval algorithms, embeddings, graph retrieval, chunking/versioning pipelines, citation quality, legal-advice boundaries, and service-to-service retrieval patterns.</td>
+        <td>Legal/policy sensitivity, citation quality, and the need for shared reference infrastructure across programs.</td>
+      </tr>
+      <tr>
+        <td><strong>Health</strong></td>
+        <td>Local inference over health policy, operational guidance, protected data workflows, and clinical/admin support patterns.</td>
+        <td>Privacy-preserving retrieval, document and policy pipelines, role-based access, model boundaries, audit logging, red-teaming, evaluation, and fallback paths.</td>
+        <td>High sensitivity, privacy obligations, Protected B/C concerns, and strict operational accountability.</td>
+      </tr>
+      <tr>
+        <td><strong>SDPR / OCR</strong></td>
+        <td>Document intelligence, OCR, form extraction, evidence comparison, human-in-the-loop review, and workflow triage.</td>
+        <td>OCR/VLM extraction accuracy, field-level confidence, document pipelines, validation logic, evidence matching, benchmark datasets, worker review impact, exception handling, and handoff risk.</td>
+        <td>Income/support documents may contain sensitive personal information, and high-stakes service workflows require strong accuracy evidence before operational adoption.</td>
+      </tr>
+      <tr>
+        <td><strong>MOTT / App Remediation</strong></td>
+        <td>AI-assisted software remediation, code analysis, migration planning, test generation, documentation, and developer productivity patterns.</td>
+        <td>Static analysis, LLM-assisted code review, repo/document analysis, dependency mapping, modernization pipelines, automated test generation, quality gates, token/cost tracking, and measurable developer throughput.</td>
+        <td>Legacy systems and remediation work often involve sensitive code, internal architecture, and operational dependencies; local or governed AI patterns help manage risk while measuring real productivity gains.</td>
+      </tr>
+      <tr>
+        <td><strong>Local LLM / Inference Services</strong></td>
+        <td>Shared local model serving for finance, HR, legal, health, document processing, and internal knowledge workflows.</td>
+        <td>Serving algorithms and runtimes, vLLM, KServe, llama.cpp, SGLang, routing, context sizing, KV-cache, quantization, batching, concurrency, cost, latency, and observability.</td>
+        <td>Keeps sensitive prompts and data in government-controlled infrastructure while testing viability before wider adoption.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-gold">
+    <strong>Patterns to extract:</strong> ML/AI algorithm selection, data pipeline readiness, OCR/VLM extraction, software remediation, training and fine-tuning, inference serving, retrieval and grounding, evaluation, resource sizing, governance, observability, cost modelling, and operational ownership.
+  </div>
+</div>
+
+<h3>Procurement Status</h3>
+
+<table>
+  <thead><tr><th>Order</th><th>Platform</th><th>Description</th><th>Model</th><th>ETA</th></tr></thead>
+  <tbody>
+    <tr><td>CR-CAP-134</td><td>Network</td><td>CITZ – WAN Refresh – Kamloops</td><td>2× Arista DCS-7280SR3AM-48YC8-R</td><td>June 17, 2026</td></tr>
+    <tr><td>CR-CAP-134</td><td>Network</td><td>CITZ – WAN Refresh – Calgary</td><td>2× Arista DCS-7280SR3AM-48YC8-F</td><td>June 17, 2026</td></tr>
+    <tr><td>CR-CAP-142</td><td>Managed Container Service</td><td>CITZ – OpenShift AI capability</td><td>3× Dell R770 – 2 TB – 2× Xeon 6527P – 2× RTX Pro 6000</td><td>November 23, 2026</td></tr>
+  </tbody>
+</table>
+
+<div class="callout callout-gold">
+  <strong>Timeline:</strong> When the hardware is installed (estimated December 2026), the CITZ AI Centre of Excellence is preparing this report alongside the new upgrades in the OpenShift AI Hub so that projects and products can understand how to utilize this new compute for diverse AI applications — sovereign inference, fine-tuning, evaluation, embedding, and preprocessing.
+</div>
+
+<h3>A Practical Example: What Does a GPU Partition Actually Support?</h3>
+
+<p>To illustrate why this guide matters, consider the GPU resources alone:</p>
+
+<p>We have <strong>6× RTX Pro 6000 GPUs</strong>, each with <strong>96 GB VRAM</strong>. With NVIDIA MIG (Multi-Instance GPU), each GPU can be partitioned into up to 4 isolated slices — that is <strong>4 different projects running on 1 GPU</strong>. Across the cluster, that means a maximum of <strong>24 GPU slots</strong> (6 GPUs × 4 partitions). But each partition only gets <strong>96 GB ÷ 4 = 24 GB VRAM</strong>.</p>
+
+<p>Is 24 GB enough? That depends entirely on your <strong>application context</strong>:</p>
+
+<table>
+  <thead><tr><th>Question</th><th>Why It Matters</th><th>Example Impact on 24 GB MIG Slice</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>What is your application?</strong></td>
+      <td>A single-user chat demo has different needs than a batch document processor or an agentic workflow</td>
+      <td>A demo fits easily. A production service serving a ministry does not — it needs concurrency headroom.</td>
+    </tr>
+    <tr>
+      <td><strong>How many concurrent users?</strong></td>
+      <td>Each concurrent user grows the KV-cache. Government services do not serve 1 user.</td>
+      <td>A 7B Q4 model uses ~5 GB for weights. At 4 concurrent users with 8K context: +2 GB KV-cache (7 GB total, fits). At 16 users: +8 GB (13 GB, fits). At 32 users with 16K context: +32 GB (exceeds 24 GB — OOM).</td>
+    </tr>
+    <tr>
+      <td><strong>What context length do you need?</strong></td>
+      <td>Short Q&A (2K–4K tokens) vs. long document processing (16K–32K) vs. agentic workflows (32K–128K) have very different memory profiles</td>
+      <td>At 32K context, KV-cache per user is 4× larger than at 8K. An agentic workflow requiring 64K+ context may not fit even a single user alongside model weights in a 24 GB slice.</td>
+    </tr>
+    <tr>
+      <td><strong>Is this for real-time serving or batch?</strong></td>
+      <td>Batch processing can queue requests sequentially (low concurrency, high throughput over time). Real-time serving must handle bursts.</td>
+      <td>Batch: 1–2 concurrent requests, KV-cache stays small — 24 GB works well. Real-time burst of 20 users: KV-cache spike, potential OOM.</td>
+    </tr>
+    <tr>
+      <td><strong>Will your workload grow?</strong></td>
+      <td>A model serving 4 users today may need to serve 40 after onboarding more teams. KV-cache grows linearly.</td>
+      <td>What fits today at 4 users may OOM at 20. The namespace request should account for projected growth, not just day-one load.</td>
+    </tr>
+    <tr>
+      <td><strong>Is this inference, fine-tuning, or evaluation?</strong></td>
+      <td>Training requires optimizer states + gradients (2–4× model weight size). Evaluation may not need a local GPU at all.</td>
+      <td>Fine-tuning a 7B model with LoRA needs ~15–20 GB (weights + adapters + gradients) — a 24 GB MIG slice is tight. QLoRA of a larger model does not fit.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <strong>The point:</strong> "Can my model fit?" is the wrong first question. The right questions are: What is my application? How many users? What context length? Real-time or batch? Will it grow? Those answers determine whether a MIG slice, a full GPU, multiple GPUs, or CPU-only compute is the right fit. This document helps you work through those questions.
+</div>
+
+<h3>Tools Available on the OpenShift AI Hub</h3>
+
+<p>As the platform is upgraded, these open source tools become available for teams to use. Each serves a specific purpose in the AI workflow:</p>
+
+<table>
+  <thead><tr><th>Tool</th><th>Purpose</th><th>When You Need It</th></tr></thead>
+  <tbody>
+    <tr><td><strong>vLLM</strong></td><td>LLM inference server</td><td>Serving a language model as an API endpoint (chat, RAG, document processing)</td></tr>
+    <tr><td><strong>KServe</strong></td><td>Model serving on Kubernetes</td><td>Standardized model deployment with autoscaling, canary rollout, multi-framework support</td></tr>
+    <tr><td><strong>LLM Compressor</strong></td><td>Model quantization and pruning</td><td>Reducing model size to fit in less VRAM (e.g., 70B model from 140 GB → 35 GB)</td></tr>
+    <tr><td><strong>InstructLab</strong></td><td>Model fine-tuning</td><td>Adapting a model to BC Gov domain knowledge (BC Laws, policy, ministry-specific)</td></tr>
+    <tr><td><strong>lm-eval</strong></td><td>LLM benchmarking</td><td>Measuring model accuracy before and after quantization or fine-tuning</td></tr>
+    <tr><td><strong>Feast</strong></td><td>Feature store</td><td>Managing feature data for ML models with a unified API</td></tr>
+    <tr><td><strong>TrustyAI</strong></td><td>Bias, fairness, explainability</td><td>Drift detection and fairness monitoring for production models</td></tr>
+    <tr><td><strong>Kubeflow Pipelines</strong></td><td>ML workflow orchestration</td><td>Automating training, evaluation, and deployment pipelines</td></tr>
+  </tbody>
+</table>
+
+<div class="callout callout-green">
+  <strong>Living document:</strong> We are still learning. Tools may change, new capabilities will emerge, and research into using CPUs and GPUs together for more powerful AI inference and training is evolving rapidly. This document is grounded in what we know today and will be updated as the AI and compute landscape develops and as we observe how teams actually use these resources on the platform.
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     2. KEY TERMS
+     ════════════════════════════════════════════════════════════════ -->
+<h2>2. Key Terms</h2>
+
+<p>This document uses terms from distributed systems, GPU computing, and AI infrastructure. Here is what they mean in plain language:</p>
+
+<table>
+  <thead><tr><th>Term</th><th>What It Means</th><th>Why It Matters Here</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Heterogeneous Computing</strong></td><td>Using different types of processors together — CPUs, GPUs, and specialized accelerators — each handling the work they do best, rather than relying on one type alone.</td><td>Our platform has both Xeon 6 CPUs (with AMX matrix acceleration) and RTX Pro 6000 GPUs. Using both together serves more projects at lower cost than GPUs alone.</td></tr>
+    <tr><td><strong>Distributed Computing</strong></td><td>Spreading a workload across multiple servers, CPUs, or GPUs so they work together on the same task — combining memory, compute, and bandwidth from multiple machines.</td><td>A model too large for 1 GPU can be split across 2. A training job can offload optimizer states to CPU RAM across the network. Distributed computing lets teams access more resources than a single server provides.</td></tr>
+    <tr><td><strong>MIG (Multi-Instance GPU)</strong></td><td>NVIDIA technology that partitions a single physical GPU into multiple isolated slices. Each slice gets its own dedicated memory and compute — like separate smaller GPUs inside one card.</td><td>A 96 GB GPU can be split into 4× 24 GB slices, letting 4 different projects run on 1 GPU without interfering with each other. Useful when many projects need a small amount of GPU.</td></tr>
+    <tr><td><strong>Namespace</strong></td><td>An isolated workspace on OpenShift where a project runs. Each namespace has its own resource limits (CPU, RAM, GPU, storage) set by the platform team.</td><td>When you request resources for your AI application, you are requesting a namespace with specific resource quotas. This guide helps you determine what to request.</td></tr>
+    <tr><td><strong>VRAM</strong></td><td>Video RAM — the memory on a GPU. This is where model weights, KV-cache, and intermediate computations live during GPU inference or training.</td><td>VRAM is the primary sizing constraint for GPU workloads. A 70B model in Q4 needs ~35–45 GB of VRAM just for weights, before any users connect.</td></tr>
+    <tr><td><strong>KV-Cache</strong></td><td>Key-Value cache — temporary memory that stores the conversation context during inference. Grows with each concurrent user and with longer conversations or documents.</td><td>KV-cache is what makes the same model work for 1 user but run out of memory with 20 users. It is the variable cost that determines how many people your model can serve simultaneously.</td></tr>
+    <tr><td><strong>Quantization (Q4, Q5, Q8)</strong></td><td>Compressing a model's weights from high precision (FP16 = 2 bytes per parameter) to lower precision (Q4 = 0.5 bytes per parameter). Reduces memory by 2–4× with small accuracy trade-off.</td><td>A 70B model goes from ~140 GB (FP16) to ~35 GB (Q4) — the difference between needing 2 GPUs and fitting on 1. LLM Compressor does this.</td></tr>
+    <tr><td><strong>AMX (Advanced Matrix Extensions)</strong></td><td>Hardware acceleration built into Intel Xeon 6 CPUs for matrix math (BF16/INT8). Similar in purpose to GPU tensor cores, but on the CPU.</td><td>AMX lets CPUs handle AI workloads like embedding, encoding, and small-model inference — tasks that would otherwise require a GPU.</td></tr>
+    <tr><td><strong>NUMA (Non-Uniform Memory Access)</strong></td><td>In a dual-socket server, each CPU socket has its own local memory. Accessing memory on the other socket is slower. NUMA-aware scheduling places workloads close to their memory.</td><td>Scheduling an AI workload on the wrong socket can reduce throughput. Platform teams use NUMA-aware placement to ensure workloads run efficiently.</td></tr>
+    <tr><td><strong>Tensor Parallelism</strong></td><td>Splitting a single model across multiple GPUs so each GPU holds part of the model and they compute together in parallel.</td><td>When a model is too large for 1 GPU, tensor parallelism lets it run on 2 or more. Requires high-bandwidth connection between GPUs.</td></tr>
+    <tr><td><strong>KV-Cache Offload</strong></td><td>Moving KV-cache data from GPU VRAM to CPU RAM when GPU memory runs low. Trades some latency for the ability to serve more concurrent users.</td><td>With 2 TB of CPU RAM per server, KV-cache offload can dramatically increase the number of concurrent users a GPU model can serve.</td></tr>
+    <tr><td><strong>Sovereign Compute</strong></td><td>Computing infrastructure owned and operated by the government, where data stays within government-controlled systems and never leaves to third-party cloud providers.</td><td>All AI workloads described in this guide run on BC Gov's own hardware in government data centers — no data leaves sovereign infrastructure.</td></tr>
+  </tbody>
+</table>
+
+<!-- ════════════════════════════════════════════════════════════════
+     3. HETEROGENEOUS COMPUTE BUDGET
+     ════════════════════════════════════════════════════════════════ -->
+<h2>3. Heterogeneous Compute Budget</h2>
+
+<p>This is a <strong>heterogeneous compute platform</strong>, not a GPU cluster with CPUs attached. Every compute tier — GPU, CPU+AMX, DRAM, cache, network — has finite capacity, specific bandwidth characteristics, and multi-tenant contention properties. Namespace sizing must respect all of them.</p>
+
+<h3>2.1 Compute Tiers — Every Tier Is Constrained</h3>
+
+<table>
+  <thead>
+    <tr><th>Compute Tier</th><th>Per Server</th><th>Cluster Total</th><th>Binding Constraint</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>GPU (RTX Pro 6000)</strong></td><td>2</td><td>6</td><td>VRAM capacity, PCIe host↔device bandwidth</td></tr>
+    <tr><td><strong>VRAM</strong></td><td>~192 GB</td><td>~576 GB</td><td>Shared by model weights + KV-cache + activations per GPU</td></tr>
+    <tr><td><strong>CPU cores (Xeon 6527P)</strong></td><td>48 (2× 24c)</td><td>144</td><td>Per-core LLC (6 MB/core), AMX throughput, NUMA locality</td></tr>
+    <tr><td><strong>LLC (Last-Level Cache)</strong></td><td>288 MB (2× 144 MB)</td><td>864 MB</td><td>Cache pollution under multi-tenant load; 6 MB/core is finite</td></tr>
+    <tr><td><strong>DRAM</strong></td><td>2 TB (8 channels/socket, DDR5-6400)</td><td>6 TB</td><td>~400 GB/s per socket, ~800 GB/s per server — capacity and bandwidth to support multiple AI workloads</td></tr>
+    <tr><td><strong>PCIe 5.0 lanes</strong></td><td>176 (88/socket)</td><td>528</td><td>GPU↔CPU data movement, NIC, storage — shared bus</td></tr>
+    <tr><td><strong>Network (Arista 25G/100G)</strong></td><td>25G–100G ports</td><td>~200 Gbps aggregate</td><td>Cross-node model movement, distributed inference, storage I/O</td></tr>
+    <tr><td><strong>MIG slices (if enabled)</strong></td><td>Up to 8</td><td>Up to 24</td><td>Isolated GPU partitions — dedicated memory/compute per slice</td></tr>
+  </tbody>
+</table>
+
+<div class="callout callout-gold">
+  <strong>Heterogeneous compute:</strong> This platform has GPU, CPU+AMX, and large memory resources at every tier. The Xeon 6527P CPUs with AMX are not just "the CPU that hosts the GPU" — they are compute-capable accelerators in their own right. The goal of namespace sizing is to make sure teams utilize the right tier for their workload: GPUs for high-throughput model serving, CPUs for embedding/encoding/preprocessing, and memory for offloaded training — so that all resources stay productive.
+</div>
+
+<h3>2.2 What This Compute Can Do — The Utilization Challenge</h3>
+
+<p>This is a powerful platform. With 144 cores, 288 MB LLC, ~800 GB/s aggregate memory bandwidth (DDR5-6400 × 8 channels × 2 sockets per server × 3 servers), 6 TB RAM, and 6 GPUs with 576 GB VRAM — the question is not whether we have enough compute. <strong>The question is whether teams are actually utilizing it.</strong></p>
+
+<p>Historically, our AI Hub evolved from dual-socket 2nd-gen Xeon to 5th-gen Xeon, and not all projects fully utilized the resources available at each stage. The challenge with this upgrade is the same:</p>
+
+<ul>
+  <li><strong>Are teams aware of what is available?</strong> CPU+AMX acceleration, GPU inference, large memory pools, and high-bandwidth networking are all available — but only useful if teams know how to request and configure them.</li>
+  <li><strong>Are allocated resources being used?</strong> A namespace allocated 32 cores and 64 GB RAM but only using 4 cores and 8 GB wastes capacity that other projects could use.</li>
+  <li><strong>Can underutilized capacity be shared?</strong> If a GPU sits idle 80% of the day, can another project burst onto it? If training runs overnight, can inference reclaim those resources during the day?</li>
+  <li><strong>Can teams that need more get more?</strong> Distributed computing can combine GPUs, CPUs, and memory across servers — but the namespace and scheduling must be configured to enable it.</li>
+</ul>
+
+<p>The compute tiers in Section 2.1 show what is available per server. The profiles in Section 4 help teams request what they actually need. The scheduling policies in Section 6 help the platform team ensure that idle resources flow to teams that can use them.</p>
+
+<h3>2.3 Multi-Tenant Platform Overhead</h3>
+
+<table>
+  <thead>
+    <tr><th>Component</th><th>Estimated Overhead</th><th>Resources Consumed</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>OpenShift platform (API, etcd, ingress, SDN)</td><td>~8–12 cores, ~32–48 GB RAM per server</td><td>CPU, RAM, storage IOPS</td></tr>
+    <tr><td>Monitoring (Prometheus, Grafana stack)</td><td>~4–8 cores, ~16–32 GB RAM cluster-wide</td><td>CPU, RAM, storage</td></tr>
+    <tr><td>NVIDIA GPU Operator + device plugin</td><td>~2–4 cores, ~4–8 GB RAM per server</td><td>CPU, RAM, PCIe management</td></tr>
+    <tr><td>Storage operators (ODF, CSI drivers)</td><td>~4–8 cores, ~16–32 GB RAM cluster-wide</td><td>CPU, RAM, storage bandwidth</td></tr>
+    <tr><td><strong>Effective AI workload budget</strong></td><td></td><td><strong>~110–120 CPU cores, ~5.0–5.4 TB RAM, 6 GPUs</strong></td></tr>
+  </tbody>
+</table>
+
+<!-- ════════════════════════════════════════════════════════════════
+     3. HOW WORKLOAD MATH DETERMINES RESOURCE REQUESTS
+     ════════════════════════════════════════════════════════════════ -->
+<h2>3. How Workload Math Determines Resource Requests</h2>
+
+<p>When a project requests resources, the platform team needs to understand <strong>what the application actually requires</strong> — not just "give me a GPU" or "give me 32 cores." The math below helps both sides speak the same language.</p>
+
+<h3>3.1 GPU Memory: Model Weights + KV-Cache + Concurrency</h3>
+
+<p>GPU memory is shared between the model weights (fixed cost) and the KV-cache (variable cost that grows with users and context length):</p>
+
+<div class="formula">GPU memory used = Model weights + KV-cache (per user × concurrent users) + Framework overhead
+
+Example: Llama-3.1-70B, 8K context, FP16 KV-cache
+KV-cache per request = 2 × 80 layers × 8 kv_heads × 128 head_dim × 8192 context × 2 bytes ≈ 2.6 GB
+
+Scenario A — Low concurrency (batch processing, 4 users):
+  Weights (Q4): ~35 GB + KV-cache: ~10 GB = ~45 GB → fits on 1 GPU (96 GB)
+
+Scenario B — Medium concurrency (production service, 16 users):
+  Weights (Q4): ~35 GB + KV-cache: ~42 GB = ~77 GB → fits on 1 GPU, but limited headroom
+
+Scenario C — High concurrency (ministry-wide service, 32 users):
+  Weights (Q4): ~35 GB + KV-cache: ~84 GB = ~119 GB → exceeds 1 GPU, needs 2 GPUs or KV-cache offload to CPU RAM</div>
+
+<p>This is why the same model can work for a pilot (4 users) but needs a different profile for production (32 users). The profiles in Section 4 account for this.</p>
+
+<h3>3.2 CPU Compute: Active AI Participants, Not Just GPU Hosts</h3>
+
+<p>Modern CPUs are not bystanders in AI inference. The Xeon 6527P with AMX (BF16/INT8 matrix acceleration), AVX-512, and ~400 GB/s memory bandwidth per socket is a <strong>compute-capable AI accelerator in its own right</strong>. This is not theoretical — recent research and industry direction confirm it:</p>
+
+<div class="callout callout-green">
+  <strong>Heterogeneous EPD Disaggregation</strong> (Intel + SGLang/LMSYS, June 2026): Offloading vision encoding to Xeon 6 CPUs (AMX) while GPUs handle language model decode achieved <strong>~1.2–1.3× request throughput improvement</strong> and <strong>~1.3–30× P99 TPOT (time per output token) reduction</strong> over pure GPU EPD. The CPU resources are effectively "free" — they exist in every server regardless. Using them for appropriate inference stages improves platform utilization without additional hardware cost.
+</div>
+
+<div class="callout">
+  <strong>Arm AGI CPU</strong> (Arm, 2026): Arm has released its first production silicon designed specifically for agentic AI workloads — 136 Neoverse V3 cores, 2 MB L2 cache per core, DDR5-8800 support, and PCIe Gen6. This signals that the industry recognizes CPUs as first-class AI processors, not just GPU hosts. The compute direction is heterogeneous: CPUs and GPUs working together, each handling the stages where they are most efficient.
+</div>
+
+<p>What CPU compute enables on this platform:</p>
+
+<table>
+  <thead><tr><th>CPU Workload</th><th>How It Works</th><th>Why It Matters for Utilization</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Vision/audio encoding (EPD)</strong></td><td>AMX handles ViT/CNN encoder stages; GPU handles language decode</td><td>1.2–1.3× throughput over GPU-only; frees GPU decode capacity</td></tr>
+    <tr><td><strong>CPU inference (7B–13B models)</strong></td><td>Full model inference on CPU with AMX; ~800 GB/s bandwidth per server supports weight streaming</td><td>No GPU needed; at realistic 10–30% utilization, CPUs are 3–5× more power-efficient than idle GPUs</td></tr>
+    <tr><td><strong>Embedding generation</strong></td><td>Small models (~0.5–2 GB) with high throughput on CPU</td><td>Multiple embedding services per server; GPU is overkill for this workload</td></tr>
+    <tr><td><strong>Preprocessing / tokenization / OCR</strong></td><td>Data pipeline, batch document processing</td><td>Runs alongside GPU workloads with minimal resource contention</td></tr>
+    <tr><td><strong>Training offload (ZeRO-Offload)</strong></td><td>Optimizer states in 2 TB CPU RAM instead of VRAM</td><td>Makes 70B QLoRA feasible on 2 GPUs instead of 4+</td></tr>
+    <tr><td><strong>Agentic orchestration</strong></td><td>Tool calling, routing, planning stages that do not need GPU</td><td>Agentic workloads spend most time on orchestration, not matrix math — CPU handles this naturally</td></tr>
+  </tbody>
+</table>
+
+<p>The key insight from the LMSYS research: the <strong>device-aware weighted router</strong> dynamically balances work between CPU and GPU pools based on actual load. When CPUs are underutilized relative to their capacity, the router sends encoding work to CPUs. When GPUs are under pressure, CPUs absorb overflow. This is the operational model that maximizes utilization of all compute — and it is directly applicable to our Xeon 6527P + RTX Pro 6000 configuration.</p>
+
+<div class="callout callout-gold">
+  <strong>Utilization, not hierarchy:</strong> The question is not "GPU for real work, CPU for leftovers." The question is: which stage of your AI pipeline benefits most from which compute tier? Encoding → CPU (AMX). Decode → GPU. Embedding → CPU. Training gradients → GPU. Optimizer states → CPU RAM. Orchestration → CPU. When all tiers are utilized for the stages they handle best, the platform serves more projects, more efficiently, at lower power cost.
+</div>
+
+<h3>3.3 Utilization: From Oversubscription to Underutilization</h3>
+
+<p>In a shared platform, the challenge is not just "do we have enough" — it is making sure resources flow to where they are needed:</p>
+
+<table>
+  <thead><tr><th>Situation</th><th>What Happens</th><th>How This Guide Helps</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Oversubscription</strong></td><td>Too many projects requesting GPUs; queuing, preemption, or OOM</td><td>Profiles help right-size requests; MIG partitioning shares GPUs; CPU-first defaults reduce GPU pressure</td></tr>
+    <tr><td><strong>Underutilization</strong></td><td>Resources allocated but idle — GPUs reserved but not running inference, CPU cores allocated but not used</td><td>Scheduling policies (burst, preemption) let idle resources flow to other projects; monitoring identifies waste</td></tr>
+    <tr><td><strong>Unaware teams</strong></td><td>Projects do not know CPU inference, AMX acceleration, or quantization are options — default to "I need a GPU"</td><td>Profiles E and D show what can run without GPU; tools table shows what is available; intake form captures actual needs</td></tr>
+    <tr><td><strong>Growing workloads</strong></td><td>A project starts with 4 users, scales to 40; KV-cache grows, memory pressure increases</td><td>Profiles account for growth; distributed inference and KV-cache offload are available when a single GPU is no longer enough</td></tr>
+  </tbody>
+</table>
+
+<!-- ════════════════════════════════════════════════════════════════
+     4. REFERENCE NAMESPACE PROFILES
+     ════════════════════════════════════════════════════════════════ -->
+<h2>4. Reference Namespace Profiles</h2>
+
+<p>Five profiles cover the spectrum of AI workloads. Each profile helps project owners and platform teams agree on what resources an application needs — and why — based on the workload type, not guesswork.</p>
+
+<h3><span class="profile-badge profile-a">A</span> Lightweight Inference (7B–8B Model)</h3>
+<p><em>Chat, RAG, classification, routing, embedding backend</em></p>
+
+<table>
+  <thead><tr><th>Resource</th><th>Request</th><th>Limit</th><th>Rationale</th></tr></thead>
+  <tbody>
+    <tr><td>GPU</td><td>1 (or 1 MIG slice)</td><td>1</td><td>7B Q4 fits in ~5 GB VRAM; KV-cache at 8K ≈ 0.5 GB/request</td></tr>
+    <tr><td>VRAM footprint</td><td>~8–16 GB</td><td>~24 GB</td><td>Weights + KV-cache for 8–16 concurrent users</td></tr>
+    <tr><td>CPU</td><td>4–8 cores</td><td>16 cores</td><td>Tokenization, API serving — low bandwidth pressure</td></tr>
+    <tr><td>RAM</td><td>16 GB</td><td>32 GB</td><td>Scheduler state, request buffers</td></tr>
+    <tr><td>Storage</td><td>20 GB</td><td>50 GB</td><td>Model weights cache, logs</td></tr>
+    <tr><td>NUMA affinity</td><td>Same socket as GPU</td><td>—</td><td>GPU PCIe path must be NUMA-local; cross-socket adds latency</td></tr>
+    <tr><td>Bandwidth pressure</td><td>Low</td><td>—</td><td>Weights on GPU; CPU does tokenization only — minimal DRAM streaming</td></tr>
+  </tbody>
+</table>
+<p><strong>Cluster capacity:</strong> Up to 6 instances (1 per GPU), or up to 24 with MIG. <strong>Co-tenancy:</strong> Multiple Profile A workloads can share a NUMA domain without significant cache/bandwidth contention because CPU work is light.</p>
+
+<h3><span class="profile-badge profile-b">B</span> Medium Inference (30B–70B Model, Quantized)</h3>
+<p><em>Higher-accuracy sovereign inference, policy analysis, complex extraction</em></p>
+
+<table>
+  <thead><tr><th>Resource</th><th>Request</th><th>Limit</th><th>Rationale</th></tr></thead>
+  <tbody>
+    <tr><td>GPU</td><td>1 (Q4) or 2 (FP16)</td><td>2</td><td>70B Q4 ≈ 35–45 GB; FP16 needs tensor parallelism across 2 GPUs</td></tr>
+    <tr><td>VRAM footprint</td><td>~45–96 GB</td><td>~192 GB</td><td>Weights + KV-cache at 2.6 GB per 8K concurrent request</td></tr>
+    <tr><td>CPU</td><td>8–16 cores</td><td>32 cores</td><td>Heavier tokenization, longer sequences, potential KV-cache offload scheduling</td></tr>
+    <tr><td>RAM</td><td>32 GB</td><td>64 GB</td><td>Scheduler state, KV-cache overflow to CPU RAM if configured</td></tr>
+    <tr><td>Storage</td><td>50 GB</td><td>100 GB</td><td>Larger model weights, evaluation artifacts</td></tr>
+    <tr><td>NUMA affinity</td><td>Same socket as GPU(s)</td><td>—</td><td>Tensor-parallel across 2 GPUs: both GPUs should be on the same server, ideally same PCIe root complex</td></tr>
+    <tr><td>Bandwidth pressure</td><td>Moderate</td><td>—</td><td>PCIe traffic for KV-cache offload; DRAM bandwidth if CPU-offload paths are enabled</td></tr>
+  </tbody>
+</table>
+<p><strong>Cluster capacity:</strong> 2–3 quantized 70B instances (1 GPU each), or 1–2 FP16 instances (2 GPUs each). <strong>Co-tenancy:</strong> Profile B with KV-cache offload can pressure DRAM bandwidth — avoid co-locating two Profile B workloads on the same NUMA domain.</p>
+
+<div class="callout callout-green">
+  <strong>Quantization impact:</strong> Without quantization, a 70B model requires 2+ GPUs (FP16). With Q4, it fits on 1 GPU by weight alone. But this shifts pressure to KV-cache — at high concurrency, KV-cache can exceed the freed VRAM, requiring offload to CPU DRAM and consuming memory bandwidth. Quantization changes the bottleneck, it does not eliminate it.
+</div>
+
+<h3><span class="profile-badge profile-c">C</span> Fine-Tuning / Training (LoRA / QLoRA)</h3>
+<p><em>Domain adaptation, custom classifiers, InstructLab-based fine-tuning</em></p>
+
+<table>
+  <thead><tr><th>Resource</th><th>Request</th><th>Limit</th><th>Rationale</th></tr></thead>
+  <tbody>
+    <tr><td>GPU</td><td>1 (7B LoRA) or 2 (70B QLoRA)</td><td>2</td><td>Base model + optimizer state + gradients</td></tr>
+    <tr><td>VRAM footprint</td><td>~20–60 GB</td><td>~192 GB</td><td>Weights + adapters + gradient checkpoints</td></tr>
+    <tr><td>CPU</td><td>16–32 cores</td><td>48 cores</td><td>Data loading, synthetic data generation, optimizer compute (ZeRO-Offload)</td></tr>
+    <tr><td>RAM</td><td>64–256 GB</td><td>512 GB</td><td>CPU offload for optimizer states (ZeRO-Offload: optimizer states = 2–4× model weights)</td></tr>
+    <tr><td>Storage</td><td>100 GB</td><td>500 GB</td><td>Training data, checkpoints, model registry</td></tr>
+    <tr><td>NUMA affinity</td><td>Dedicated NUMA domain preferred</td><td>—</td><td>Optimizer offload saturates DRAM bandwidth; co-tenants will be starved</td></tr>
+    <tr><td>Bandwidth pressure</td><td><strong>High</strong></td><td>—</td><td>~100–200 GB/s DRAM streaming for optimizer states; PCIe saturated for GPU↔CPU gradient sync</td></tr>
+  </tbody>
+</table>
+<p><strong>Why 2 TB RAM matters:</strong> The 2 TB RAM per server enables CPU offloading of optimizer states, making 70B QLoRA feasible on 2 GPUs instead of 4+. But this consumes significant memory bandwidth — a training namespace should own its NUMA domain, not share it.</p>
+
+<h3><span class="profile-badge profile-d">D</span> Batch Evaluation / Benchmarking</h3>
+<p><em>lm-eval benchmarks, model comparison, quantization quality validation</em></p>
+
+<table>
+  <thead><tr><th>Resource</th><th>Request</th><th>Limit</th><th>Rationale</th></tr></thead>
+  <tbody>
+    <tr><td>GPU</td><td>0 (API-targeted) or 1</td><td>1</td><td>lm-eval can target a vLLM endpoint — no local GPU needed</td></tr>
+    <tr><td>CPU</td><td>8–16 cores</td><td>32 cores</td><td>Evaluation framework, scoring, data loading</td></tr>
+    <tr><td>RAM</td><td>16 GB</td><td>64 GB</td><td>Task datasets, results accumulation</td></tr>
+    <tr><td>Storage</td><td>20 GB</td><td>100 GB</td><td>Evaluation results, comparison reports</td></tr>
+    <tr><td>NUMA affinity</td><td>Any (low sensitivity)</td><td>—</td><td>API-targeted eval is network-bound, not compute-bound</td></tr>
+    <tr><td>Bandwidth pressure</td><td>Low</td><td>—</td><td>Scoring is compute-light; data loading is bursty not sustained</td></tr>
+  </tbody>
+</table>
+<p><strong>Recommended pattern:</strong> Evaluation consumes the inference API, not raw GPU. Good co-tenant — low bandwidth pressure, tolerant of NUMA placement.</p>
+
+<h3><span class="profile-badge profile-e">E</span> CPU-Only Inference / Preprocessing</h3>
+<p><em>Embedding generation, OCR, small model classification, batch summarization, AMX-accelerated inference</em></p>
+
+<table>
+  <thead><tr><th>Resource</th><th>Request</th><th>Limit</th><th>Rationale</th></tr></thead>
+  <tbody>
+    <tr><td>GPU</td><td>0</td><td>0</td><td>No GPU required</td></tr>
+    <tr><td>CPU</td><td>8–24 cores</td><td>48 cores</td><td>AMX-accelerated inference, embedding, preprocessing</td></tr>
+    <tr><td>RAM</td><td>16–64 GB</td><td>128 GB</td><td>Model weights in RAM (streaming through LLC), batch buffers</td></tr>
+    <tr><td>Storage</td><td>20 GB</td><td>50 GB</td><td>Model cache, intermediate outputs</td></tr>
+    <tr><td>NUMA affinity</td><td><strong>Same socket — critical</strong></td><td>—</td><td>CPU inference streams weights from DRAM through LLC. Cross-socket access halves bandwidth.</td></tr>
+    <tr><td>Bandwidth pressure</td><td><strong>High per socket</strong></td><td>—</td><td>7B Q4 at ~307 GB/s socket bandwidth ≈ 88 tok/s. Two on same socket: ~44 tok/s each.</td></tr>
+  </tbody>
+</table>
+<p><strong>Critical:</strong> CPU inference is <strong>memory-bandwidth-bound</strong>, not core-count-bound. Scheduling 2 CPU inference workloads on the same socket halves throughput for both. The platform should limit Profile E density per NUMA domain based on bandwidth, not cores.</p>
+
+<!-- ════════════════════════════════════════════════════════════════
+     5. CAPACITY SCENARIOS
+     ════════════════════════════════════════════════════════════════ -->
+<h2>5. Capacity Scenarios (Multi-Tenant Aware)</h2>
+
+<p>These scenarios show workload placement across the 3-server, 6-NUMA-domain cluster. Each scenario accounts for co-tenancy constraints — not just resource sums.</p>
+
+<h3>Scenario 1: Conservative (Shared Inference + Evaluation)</h3>
+
+<table>
+  <thead><tr><th>Namespace</th><th>Profile</th><th>Server</th><th>NUMA</th><th>GPUs</th><th>VRAM</th><th>CPU</th><th>RAM</th><th>BW Pressure</th></tr></thead>
+  <tbody>
+    <tr><td>sovereign-chat (8B Q4)</td><td><span class="profile-badge profile-a">A</span></td><td>S1</td><td>Sock 0</td><td>1</td><td>~12 GB</td><td>8</td><td>32 GB</td><td>Low</td></tr>
+    <tr><td>bc-laws-service (8B Q4)</td><td><span class="profile-badge profile-a">A</span></td><td>S1</td><td>Sock 1</td><td>1</td><td>~12 GB</td><td>8</td><td>32 GB</td><td>Low</td></tr>
+    <tr><td>doc-extraction (8B Q4)</td><td><span class="profile-badge profile-a">A</span></td><td>S2</td><td>Sock 0</td><td>1</td><td>~12 GB</td><td>8</td><td>32 GB</td><td>Low</td></tr>
+    <tr><td>embedding-service</td><td><span class="profile-badge profile-e">E</span></td><td>S2</td><td>Sock 1</td><td>0</td><td>0</td><td>16</td><td>32 GB</td><td>Moderate</td></tr>
+    <tr><td>evaluation-pipeline</td><td><span class="profile-badge profile-d">D</span></td><td>S3</td><td>Any</td><td>0</td><td>0</td><td>8</td><td>16 GB</td><td>Low</td></tr>
+    <tr><td>experimentation (8B)</td><td><span class="profile-badge profile-a">A</span></td><td>S3</td><td>Sock 0</td><td>1</td><td>~16 GB</td><td>8</td><td>32 GB</td><td>Low</td></tr>
+    <tr class="total"><td>Total used</td><td></td><td></td><td></td><td>4</td><td>~52 GB</td><td>56</td><td>176 GB</td><td></td></tr>
+    <tr class="remaining"><td>Remaining</td><td></td><td></td><td></td><td>2</td><td>~524 GB</td><td>~74</td><td>~5.2 TB</td><td></td></tr>
+  </tbody>
+</table>
+
+<p><strong>Co-tenancy analysis:</strong> Profile A workloads have low bandwidth pressure — safe to co-locate. S2 pairs a GPU inference (Sock 0) with CPU embedding (Sock 1) on separate NUMA domains — no contention. S3 has headroom for additional workloads on Sock 1.</p>
+
+<h3>Scenario 2: Moderate (Mixed Inference + Fine-Tuning)</h3>
+
+<table>
+  <thead><tr><th>Namespace</th><th>Profile</th><th>Server</th><th>NUMA</th><th>GPUs</th><th>VRAM</th><th>CPU</th><th>RAM</th><th>BW Pressure</th></tr></thead>
+  <tbody>
+    <tr><td>sovereign-chat (70B Q4)</td><td><span class="profile-badge profile-b">B</span></td><td>S1</td><td>Sock 0</td><td>1</td><td>~55 GB</td><td>16</td><td>64 GB</td><td>Moderate</td></tr>
+    <tr><td>bc-laws-service (8B Q4)</td><td><span class="profile-badge profile-a">A</span></td><td>S1</td><td>Sock 1</td><td>1</td><td>~12 GB</td><td>8</td><td>32 GB</td><td>Low</td></tr>
+    <tr><td>doc-extraction (8B Q4)</td><td><span class="profile-badge profile-a">A</span></td><td>S2</td><td>Sock 0</td><td>1</td><td>~12 GB</td><td>8</td><td>32 GB</td><td>Low</td></tr>
+    <tr><td>embedding-service</td><td><span class="profile-badge profile-e">E</span></td><td>S2</td><td>Sock 1</td><td>0</td><td>0</td><td>16</td><td>32 GB</td><td>Moderate</td></tr>
+    <tr><td>bc-laws-finetuning (7B LoRA)</td><td><span class="profile-badge profile-c">C</span></td><td>S3</td><td>Sock 0+1</td><td>1</td><td>~20 GB</td><td>16</td><td>128 GB</td><td><strong>High</strong></td></tr>
+    <tr><td>evaluation-pipeline</td><td><span class="profile-badge profile-d">D</span></td><td>S3</td><td>Sock 1</td><td>0</td><td>0</td><td>8</td><td>16 GB</td><td>Low</td></tr>
+    <tr class="total"><td>Total used</td><td></td><td></td><td></td><td>4</td><td>~99 GB</td><td>72</td><td>304 GB</td><td></td></tr>
+    <tr class="remaining"><td>Remaining</td><td></td><td></td><td></td><td>2</td><td>~477 GB</td><td>~58</td><td>~5.1 TB</td><td></td></tr>
+  </tbody>
+</table>
+
+<p><strong>Co-tenancy analysis:</strong> Training (S3) gets its own server with high bandwidth pressure from optimizer offload. Eval co-locates on S3 Sock 1 — tolerable because eval is API-targeted (network-bound, not bandwidth-bound). The 70B inference on S1 Sock 0 is paired with lightweight 8B on Sock 1 — safe because Profile B's CPU-side work is moderate.</p>
+
+<h3>Scenario 3: Aggressive (Maximum Utilization)</h3>
+
+<table>
+  <thead><tr><th>Namespace</th><th>Profile</th><th>Server</th><th>NUMA</th><th>GPUs</th><th>VRAM</th><th>CPU</th><th>RAM</th><th>BW Pressure</th></tr></thead>
+  <tbody>
+    <tr><td>sovereign-chat (70B Q4)</td><td><span class="profile-badge profile-b">B</span></td><td>S1</td><td>Sock 0</td><td>1</td><td>~55 GB</td><td>16</td><td>64 GB</td><td>Moderate</td></tr>
+    <tr><td>bc-laws-service (70B Q4)</td><td><span class="profile-badge profile-b">B</span></td><td>S1</td><td>Sock 1</td><td>1</td><td>~55 GB</td><td>16</td><td>64 GB</td><td>Moderate</td></tr>
+    <tr><td>doc-extraction (8B Q4)</td><td><span class="profile-badge profile-a">A</span></td><td>S2</td><td>Sock 0</td><td>1</td><td>~12 GB</td><td>8</td><td>32 GB</td><td>Low</td></tr>
+    <tr><td>connected-services (8B Q4)</td><td><span class="profile-badge profile-a">A</span></td><td>S2</td><td>Sock 1</td><td>1</td><td>~12 GB</td><td>8</td><td>32 GB</td><td>Low</td></tr>
+    <tr><td>bc-laws-finetuning (70B QLoRA)</td><td><span class="profile-badge profile-c">C</span></td><td>S3</td><td>Sock 0+1</td><td>2</td><td>~120 GB</td><td>32</td><td>256 GB</td><td><strong>High</strong></td></tr>
+    <tr><td>embedding-service</td><td><span class="profile-badge profile-e">E</span></td><td>S2</td><td>Sock 1</td><td>0</td><td>0</td><td>16</td><td>32 GB</td><td>Moderate</td></tr>
+    <tr><td>evaluation-pipeline</td><td><span class="profile-badge profile-d">D</span></td><td>S1</td><td>Any</td><td>0</td><td>0</td><td>8</td><td>16 GB</td><td>Low</td></tr>
+    <tr class="total"><td>Total used</td><td></td><td></td><td></td><td>6</td><td>~254 GB</td><td>104</td><td>496 GB</td><td></td></tr>
+    <tr class="remaining"><td>Remaining</td><td></td><td></td><td></td><td>0</td><td>~322 GB</td><td>~26</td><td>~4.9 TB</td><td></td></tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <strong>Contention risk:</strong> S1 runs two 70B models on separate sockets — each GPU's PCIe path is NUMA-local, but both compete for cross-socket interconnect if any CPU work touches the other socket's memory. S2 co-locates embedding (Sock 1) with lightweight GPU inference (Sock 1) — monitor for bandwidth pressure. S3 is fully consumed by training — no co-tenants possible during active training. <strong>At this utilization, scheduling policy is not optional.</strong>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     6. SCHEDULING AND PLACEMENT POLICY
+     ════════════════════════════════════════════════════════════════ -->
+<h2>6. Scheduling and Placement Policy</h2>
+
+<p>In a heterogeneous multi-tenant cluster, scheduling is not "give me N cores" — it is workload placement across a topology of servers, sockets, NUMA domains, GPUs, and bandwidth envelopes.</p>
+
+<table>
+  <thead><tr><th>Policy</th><th>Purpose</th><th>Mechanism</th></tr></thead>
+  <tbody>
+    <tr><td><strong>NUMA-aware scheduling</strong></td><td>Ensure workloads run on the socket closest to their GPU/memory</td><td>Topology Manager (single-numa-node policy), CPU Manager (static)</td></tr>
+    <tr><td><strong>Bandwidth-aware co-tenancy</strong></td><td>Prevent two bandwidth-heavy workloads on the same NUMA domain</td><td>Anti-affinity rules; Profile C/E density limits per socket</td></tr>
+    <tr><td><strong>GPU partitioning (MIG)</strong></td><td>Isolated GPU slices for lightweight workloads</td><td>NVIDIA MIG with GPU Operator; dedicated memory/compute per slice</td></tr>
+    <tr><td><strong>Preemption</strong></td><td>Training yields GPUs to inference on demand</td><td>PriorityClass: inference=high, training=low, eval=lowest</td></tr>
+    <tr><td><strong>Burst capacity</strong></td><td>Training uses all 6 GPUs overnight when inference is idle</td><td>ResourceQuota with burst limits, cron-triggered scaling</td></tr>
+    <tr><td><strong>CPU-first default</strong></td><td>New projects start on CPU-only, graduate to GPU with evidence</td><td>Default profile = E; GPU allocation requires workload math</td></tr>
+    <tr><td><strong>LLC partitioning (RDT/CAT)</strong></td><td>Prevent cache pollution between co-tenants on same socket</td><td>Intel RDT Cache Allocation Technology — assign LLC ways per workload</td></tr>
+  </tbody>
+</table>
+
+<!-- ════════════════════════════════════════════════════════════════
+     7. AI WORKLOAD BOUNDARY
+     ════════════════════════════════════════════════════════════════ -->
+<h2>7. AI Workload Boundary for GPU-Enabled Hosts</h2>
+
+<p>GPU-enabled hosts should be reserved for AI workload execution and tightly coupled AI platform services. This keeps expensive GPU, CPU+AMX, memory, PCIe, and network capacity available for workloads that actually need AI compute locality. General application hosting should continue to use standard OpenShift or application hosting patterns unless there is a documented workload-sizing reason to co-locate with AI compute.</p>
+
+<div class="callout">
+  <strong>Boundary principle:</strong> An AI workload is compute, data, model, evaluation, or orchestration work that directly supports AI/ML training, fine-tuning, inference, evaluation, retrieval, simulation, model serving, or model-quality operations. "AI-adjacent" application code should not automatically qualify for GPU-enabled host placement.
+</div>
+
+<table>
+  <thead><tr><th>Allowed By Default</th><th>Why It Belongs On AI Compute</th></tr></thead>
+  <tbody>
+    <tr><td>Model inference and model serving</td><td>Directly consumes GPU, CPU+AMX, VRAM, RAM, or model-runtime resources.</td></tr>
+    <tr><td>VLM, OCR, ASR, document intelligence, and batch scoring</td><td>AI processing workloads where throughput, latency, model size, or data locality affect compute placement.</td></tr>
+    <tr><td>Embeddings, retrieval indexing, and vectorization jobs</td><td>Often CPU/GPU/memory intensive and directly supports RAG, search, or grounding workloads.</td></tr>
+    <tr><td>Training, fine-tuning, LoRA/QLoRA, simulation, forecasting, and geospatial ML</td><td>Consumes accelerator, CPU, memory, storage, and scheduling capacity as part of model development or AI analysis.</td></tr>
+    <tr><td>Model evaluation, benchmarking, red-team tests, drift checks, and quality monitoring</td><td>Produces the evidence needed to decide whether a model or platform path should be adopted, scaled, changed, or stopped.</td></tr>
+    <tr><td>AI pipeline workers and orchestration jobs</td><td>Allowed when they directly execute or coordinate AI workload stages such as data preparation, model calls, evaluation, or batch inference.</td></tr>
+    <tr><td>AI notebooks and workbenches</td><td>Allowed for AI/ML experimentation, benchmark development, workload profiling, and platform validation.</td></tr>
+  </tbody>
+</table>
+
+<table>
+  <thead><tr><th>Excluded By Default</th><th>Why It Should Run Elsewhere</th></tr></thead>
+  <tbody>
+    <tr><td>General React frontends, static websites, dashboards, and UI shells</td><td>These normally do not require GPU, CPU+AMX, NUMA-local memory, or AI compute locality.</td></tr>
+    <tr><td>Generic Node/Nest/Java/.NET backends and CRUD APIs</td><td>Application logic should run on standard hosting unless it is tightly coupled to AI runtime execution.</td></tr>
+    <tr><td>Ordinary relational databases or application state stores</td><td>Databases should use normal managed database or application hosting patterns unless there is a specific AI data-locality requirement.</td></tr>
+    <tr><td>Project management tools, admin portals, and non-AI business applications</td><td>These consume capacity without improving AI workload execution.</td></tr>
+  </tbody>
+</table>
+
+<div class="callout callout-green">
+  <strong>Practical rule:</strong> An API that directly serves a model, launches AI jobs, manages model/runtime execution, or performs AI pipeline stages may belong near AI compute. An API that only manages users, forms, settings, dashboards, or general workflow state should run on standard application infrastructure. A lightweight UI for an AI demo may be useful, but the UI itself should not consume GPU-enabled host capacity unless a documented technical reason exists.
+</div>
+
+<p>This boundary matters for licensing and operations. If GPU-enabled hosts are licensed or operated as AI-only hosts, the platform needs a defensible definition of what counts as AI work. Without that definition, any application can be described as AI-adjacent and the cluster can slowly become general-purpose hosting with expensive accelerators attached.</p>
+
+<!-- ════════════════════════════════════════════════════════════════
+     8. DYNAMIC WORKLOAD SIZING
+     ════════════════════════════════════════════════════════════════ -->
+<h2>8. Dynamic Workload Sizing, Queues, and Burst Utilization</h2>
+
+<p>AI workloads are often bursty, experimental, batch-oriented, or time-boxed. A static namespace allocation model can leave expensive GPU, CPU, memory, and network capacity idle. A better operating model is to define guaranteed baseline allocations, then allow approved AI workloads to temporarily use more capacity when the cluster is underutilized.</p>
+
+<div class="callout">
+  <strong>Dynamic sizing principle:</strong> if the cluster is quiet, approved workloads should be able to burst into unused CPU, GPU, MIG, memory, or distributed capacity to finish faster. If the cluster is busy, workloads should fall back to their guaranteed quota, queue, or follow priority and pre-emption rules. This requires licensing, host eligibility, scheduling policy, quota rules, and monitoring to agree with each other.
+</div>
+
+<table>
+  <thead><tr><th>Operating Mode</th><th>What It Means</th><th>Why It Matters</th><th>Required Controls</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Guaranteed allocation</strong></td><td>Each approved workload or namespace receives a baseline CPU/RAM/GPU/MIG allocation.</td><td>Protects production and priority workloads from starvation.</td><td>ResourceQuota, LimitRange, namespace profile, support owner, monitoring baseline.</td></tr>
+    <tr><td><strong>Burst utilization</strong></td><td>Workloads temporarily consume idle cluster capacity beyond their baseline allocation.</td><td>Improves utilization and lets batch, evaluation, training, or simulation jobs finish faster when resources are idle.</td><td>Burst limits, priority classes, scheduler policy, approval rules, utilization monitoring.</td></tr>
+    <tr><td><strong>Priority queues</strong></td><td>Workloads wait or run based on priority: production inference above training, training above evaluation, evaluation below live service traffic.</td><td>Prevents low-priority experiments from blocking high-priority operational workloads.</td><td>Queue policy, pre-emption policy, job controller, user/project priority mapping.</td></tr>
+    <tr><td><strong>Pre-emption</strong></td><td>Lower-priority jobs yield resources when higher-priority workloads need them.</td><td>Keeps production inference available while still allowing training/evaluation to use idle capacity.</td><td>PriorityClass, checkpointing, restart policy, job tolerance for interruption.</td></tr>
+    <tr><td><strong>Oversubscription</strong></td><td>The platform accepts more requested capacity than is physically available, assuming not all workloads peak at once.</td><td>Can increase utilization, but unmanaged oversubscription creates queues, OOM events, contention, and missed service targets.</td><td>Measured utilization, admission control, quotas, alerts, workload profiles, executive/service priority rules.</td></tr>
+    <tr><td><strong>Availability-aware placement</strong></td><td>Workloads are placed based on resilience needs: best-effort, recoverable batch, production inference, or future DR-capable service.</td><td>Not every AI workload needs disaster recovery. Critical AI services may need a different architecture and budget.</td><td>Service tier, restart policy, backup/data recovery plan, DR decision, support model.</td></tr>
+    <tr><td><strong>Dynamic distributed execution</strong></td><td>Approved jobs temporarily use multiple GPUs, full nodes, CPU pools, or cross-node resources when topology allows.</td><td>Allows large batch jobs, model evaluation, simulations, or training to finish faster without permanently reserving the full cluster.</td><td>Confirmed topology, NIC/switch bandwidth, storage path, distributed runtime support, queueing, monitoring.</td></tr>
+  </tbody>
+</table>
+
+<p>Dynamic sizing is different from traditional web application hosting. Web workloads are often sized for steady-state service capacity and horizontal scaling. AI workloads may need temporary access to large compute windows: a training run overnight, a document batch over a weekend, a benchmark sweep, a simulation burst, or an evaluation job that can wait behind production inference.</p>
+
+<table>
+  <thead><tr><th>Layer</th><th>Role In Dynamic Sizing</th><th>Questions To Resolve</th></tr></thead>
+  <tbody>
+    <tr><td><strong>OpenShift / Kubernetes</strong></td><td>Provides namespaces, quotas, scheduling, node labels, taints/tolerations, priority classes, jobs, and resource requests/limits.</td><td>Can namespaces burst beyond baseline quota? How are priority and pre-emption configured? Can jobs target NUMA/GPU/MIG topology correctly?</td></tr>
+    <tr><td><strong>NVIDIA stack / RunAI / NeMo / Triton-Dynamo</strong></td><td>May provide GPU orchestration, model serving, workload queues, model/runtime management, and accelerator-aware scheduling.</td><td>Does it manage GPU sharing, queues, model serving, and utilization better than base OpenShift? What licensing is required? What does it solve versus what still depends on topology?</td></tr>
+    <tr><td><strong>VMware / NSX / VMware Private AI</strong></td><td>May affect host placement, isolation, virtual networking, microsegmentation, GPU exposure, and operational management.</td><td>Are GPU nodes bare metal, virtualized, passed through, or otherwise constrained? Does VMware add useful control, or does it limit low-level AI placement and bandwidth assumptions?</td></tr>
+    <tr><td><strong>Licensing model</strong></td><td>Determines which hosts can run which workloads and whether mixed or AI-only host modes are cost-effective.</td><td>Are GPU-enabled hosts licensed as AI-only hosts or mixed-use hosts? Are licenses per physical host, per core, per GPU, per user, or per platform component? Does bursting across hosts increase cost?</td></tr>
+    <tr><td><strong>Monitoring and chargeback/showback</strong></td><td>Provides evidence for utilization, contention, cost, and expansion decisions.</td><td>Can we measure GPU utilization, VRAM, CPU+AMX, memory bandwidth, PCIe, storage, network, queue time, and namespace-level usage?</td></tr>
+  </tbody>
+</table>
+
+<div class="callout callout-green">
+  <strong>Cost-control point:</strong> dynamic utilization only works if the licensing model supports the desired placement pattern. A cheaper license may reduce flexibility. A broader license may improve utilization but increase cost. The platform decision should therefore compare not only product features, but also the cost of flexibility: which workloads can run where, who can burst, what must queue, and what evidence is needed before expanding capacity.
+</div>
+
+<h3>8.1 Configuration, Licensing, Cost, and Workload Justification Matrix</h3>
+
+<p>As Platform, ADSL, EA, Red Hat, NVIDIA, VMware, and procurement details become clearer, the roadmap should maintain a simple decision matrix. The purpose is to connect each possible platform configuration to the software stack, licensing model, cost implication, operational constraint, and workload justification. This prevents the platform decision from becoming a generic tool preference exercise.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Configuration Option</th>
+      <th>Software / Platform Stack</th>
+      <th>Licensing Model</th>
+      <th>Cost Implication</th>
+      <th>Workloads It Supports</th>
+      <th>Constraints / Risks</th>
+      <th>Does The Cost Justify The Workload?</th>
+      <th>Status / Evidence Needed</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>GPU-enabled hosts reserved for AI-only workloads</td>
+      <td>OpenShift AI / NVIDIA stack / VMware Private AI or selected combination</td>
+      <td>To confirm: per physical host, per core, per GPU, per user, or platform component.</td>
+      <td>Potentially cleaner scope, but may require dedicated licensing for each AI host.</td>
+      <td>Inference, model serving, VLM/OCR/ASR, training, fine-tuning, evaluation, embedding, simulation, and tightly coupled AI pipeline workers.</td>
+      <td>Requires clear AI workload boundary. Non-AI application hosting should be excluded by default.</td>
+      <td>Unknown until workload inventory and licensing facts are confirmed.</td>
+      <td>Need confirmed licensing terms, host eligibility rules, and first workload profiles.</td>
+    </tr>
+    <tr>
+      <td>GPU-enabled hosts allow mixed AI and non-AI workloads</td>
+      <td>OpenShift + AI platform components with general application co-location</td>
+      <td>To confirm: whether mixed-use mode expands license scope or cost.</td>
+      <td>May improve utilization, but could increase licensing cost and operational complexity.</td>
+      <td>AI workloads plus general APIs, databases, frontends, and supporting services.</td>
+      <td>Risk of expensive AI nodes becoming general app hosting. More difficult to defend GPU/CPU/RAM allocation and isolate contention.</td>
+      <td>Likely only justified if licensing allows it and monitoring proves unused capacity can safely support non-AI workloads.</td>
+      <td>Need licensing comparison, scheduler constraints, and policy for excluding ordinary app workloads.</td>
+    </tr>
+    <tr>
+      <td>MIG-enabled shared GPU slices</td>
+      <td>NVIDIA GPU Operator / MIG strategy / OpenShift scheduling / optional RunAI</td>
+      <td>To confirm: whether MIG usage changes license or support model.</td>
+      <td>Improves multi-tenant GPU access if supported; reduces need for full-GPU allocation.</td>
+      <td>Lightweight inference, small VLM/OCR workloads, evaluation, small model serving, demos, low-concurrency services.</td>
+      <td>Each slice has limited VRAM. A 24 GB slice may not support larger models, long context, or high concurrency.</td>
+      <td>Likely justified for many small workloads if MIG support and isolation are validated.</td>
+      <td>Need confirmed MIG support, partition sizes, scheduling behaviour, monitoring, and representative tests.</td>
+    </tr>
+    <tr>
+      <td>Full GPU or multi-GPU allocation</td>
+      <td>vLLM, SGLang, Triton-Dynamo, KServe, PyTorch, NVIDIA stack, OpenShift AI</td>
+      <td>To confirm: software stack and host licensing required for full GPU / multi-GPU jobs.</td>
+      <td>High-value but scarce allocation. Should require workload math and evidence.</td>
+      <td>70B+ inference, high-throughput serving, large VLM workloads, fine-tuning, training, simulations, large batch jobs.</td>
+      <td>Can starve other teams if over-allocated. Multi-GPU performance depends on PCIe, topology, storage, and network.</td>
+      <td>Justified when model size, precision, context, concurrency, latency, or training profile requires it.</td>
+      <td>Need benchmark evidence, topology details, and queue/pre-emption policy.</td>
+    </tr>
+    <tr>
+      <td>CPU-first / CPU+AMX workloads</td>
+      <td>OpenShift CPU namespaces, llama.cpp, oneDNN/MKL, PyTorch CPU, embedding services, batch workers</td>
+      <td>To confirm: whether CPU-only AI workloads on GPU-enabled hosts affect licensing, or whether they should run on separate CPU pools.</td>
+      <td>Can reduce GPU pressure and improve utilization of high-memory Xeon capacity.</td>
+      <td>Embeddings, preprocessing, OCR pipelines, small model inference, batch classification, evaluation, orchestration, CPU offload.</td>
+      <td>CPU inference is memory-bandwidth and NUMA sensitive. Not all CPU jobs belong on GPU-enabled hosts.</td>
+      <td>Often justified when workload does not require GPU, or when CPU stages improve overall heterogeneous utilization.</td>
+      <td>Need Intel/Dell/Platform support path, AMX validation, NUMA policy, and workload benchmarks.</td>
+    </tr>
+    <tr>
+      <td>Dynamic burst / queue-based utilization</td>
+      <td>OpenShift/Kubernetes queues, PriorityClass, optional RunAI, job scheduling, monitoring</td>
+      <td>To confirm: whether bursting across hosts changes licensing or support cost.</td>
+      <td>Can increase utilization of expensive hardware, but may require broader licensing or platform tooling.</td>
+      <td>Batch evaluation, training windows, simulations, benchmark sweeps, document processing bursts, off-hours jobs.</td>
+      <td>Requires strong monitoring, priority rules, pre-emption, and clear fallback to guaranteed quotas.</td>
+      <td>Justified if idle capacity is common and burst workloads produce measurable time/cost benefit.</td>
+      <td>Need utilization data, queue policy, licensing facts, and platform scheduler decision.</td>
+    </tr>
+    <tr>
+      <td>DR-enabled AI / GPU capability</td>
+      <td>Emerald DR with AI/GPU capacity, if funded and designed</td>
+      <td>To confirm: additional host/GPU/platform licensing required for DR.</td>
+      <td>Likely significant additional cost. May be future-state only unless critical workloads require it.</td>
+      <td>Critical AI services that must survive primary-site or cluster failure.</td>
+      <td>If GPUs exist only in the primary site, GPU workloads may be unavailable during DR activation.</td>
+      <td>Only justified when an AI workload becomes operationally critical and has approved resilience requirements.</td>
+      <td>Need service criticality assessment, DR architecture decision, and funding path.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <strong>Decision question:</strong> for each configuration, the team should ask: what software stack enables it, what license permits it, what does it cost, what workloads does it support, and does that cost make sense for the workloads BC Government actually plans to run?
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     9. WHAT "500 GB RAM" MEANS
+     ════════════════════════════════════════════════════════════════ -->
+<h2>9. Validating Large Resource Requests</h2>
+
+<p>When a project requests large allocations, there should be concrete justification:</p>
+
+<table>
+  <thead><tr><th>Justified</th><th>Example</th><th>Typical Need</th></tr></thead>
+  <tbody>
+    <tr><td>Training with CPU offload</td><td>70B QLoRA, ZeRO-Offload</td><td>128–512 GB RAM</td></tr>
+    <tr><td>Large batch embedding</td><td>Millions of documents for vector index</td><td>64–256 GB RAM</td></tr>
+    <tr><td>Multiple model instances</td><td>3–4 models for A/B testing</td><td>32–128 GB RAM</td></tr>
+  </tbody>
+</table>
+
+<table>
+  <thead><tr><th>Should Be Questioned</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td>"We might need it"</td><td>Over-reservation starves other projects. RAM is shared.</td></tr>
+    <tr><td>"Framework defaults say so"</td><td>Defaults are for single-tenant machines, not shared clusters.</td></tr>
+    <tr><td>"We want headroom"</td><td>Headroom should be at cluster level (platform team), not namespace level.</td></tr>
+  </tbody>
+</table>
+
+<!-- ════════════════════════════════════════════════════════════════
+     10. INFORMATION NEEDED
+     ════════════════════════════════════════════════════════════════ -->
+<h2>10. Information Needed for Precise Calculations</h2>
+
+<table>
+  <thead><tr><th>Detail</th><th>Impact</th></tr></thead>
+  <tbody>
+    <tr><td>Exact GPU VRAM (48 GB vs 96 GB)</td><td>Changes all VRAM budgets and MIG partition options</td></tr>
+    <tr><td>MIG support and partition options</td><td>Determines whether lightweight profiles can share a GPU</td></tr>
+    <tr><td>NIC bandwidth per server</td><td>Determines feasibility of distributed training / multi-node inference</td></tr>
+    <tr><td>Initial project list from leadership</td><td>Converts abstract scenarios into real namespace allocations</td></tr>
+  </tbody>
+</table>
+
+<!-- ════════════════════════════════════════════════════════════════
+     11. RECOMMENDATION
+     ════════════════════════════════════════════════════════════════ -->
+<h2>11. Recommendation</h2>
+
+<ol>
+  <li><strong>Adopt the 5-profile system</strong> (A–E) with NUMA affinity and bandwidth pressure as first-class sizing dimensions — not just GPU/CPU/RAM counts.</li>
+  <li><strong>Start with Scenario 1</strong> (conservative) to validate the platform topology, then graduate to Scenario 2 once contention characteristics are measured.</li>
+  <li><strong>Default new projects to Profile E</strong> (CPU-only). GPU allocation requires workload math: model size × precision × concurrency × context length, not "we need GPUs."</li>
+  <li><strong>Schedule by NUMA domain, not by node.</strong> The scheduling unit is the socket+memory+PCIe complex, not the server. Two bandwidth-heavy workloads on the same socket degrade each other regardless of core count.</li>
+  <li><strong>Quantize aggressively.</strong> LLM Compressor (Q4/Q5) changes the bottleneck from VRAM capacity to KV-cache bandwidth — understand both before approving a namespace.</li>
+  <li><strong>Measure before expanding.</strong> Before adding workloads beyond Scenario 1, measure actual memory bandwidth utilization, LLC miss rates, and PCIe throughput per namespace. The numbers in this document are estimated from hardware specs — operational data will refine them.</li>
+</ol>
+
+<div class="callout callout-green">
+  <strong>Bottom line:</strong> This is a heterogeneous compute platform — 6 GPUs, 6 NUMA domains (144 MB LLC each), 6 TB DRAM (~1.8 TB/s aggregate bandwidth), and 200 Gbps fabric. Every tier is finite. Namespace sizing must respect cache locality, memory bandwidth, NUMA topology, and PCIe placement — not just GPU count. The bottleneck shifts by workload stage; the profiles and placement policies in this document are designed to keep every tier productive without starving co-tenants.
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     FOOTER
+     ════════════════════════════════════════════════════════════════ -->
+<div class="doc-footer">
+  <div>Connected Services — Citizens' Services (CITZ) — AI Centre of Excellence</div>
+  <div>Sovereign AI Compute Guide — June 2026</div>
+</div>
+
+</body>
+</html>
