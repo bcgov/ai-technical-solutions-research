@@ -1,0 +1,113 @@
+<!-- TITLE: Accuracy | Research -->
+<!-- DESCRIPTION: Accuracy and evaluation research for BC Government AI delivery, including OCR, document intelligence, model comparison, and failure analysis. -->
+<!-- NAV: accuracy -->
+<main id="top">
+  <section class="topic-hero reveal">
+    <div class="topic-left">
+      <a class="topic-back" href="index.html">&larr; Back to Home</a>
+      <h1>Accuracy</h1>
+    </div>
+    <div class="topic-right">
+      <p class="topic-lead">
+        Accuracy research helps BC Gov understand whether AI systems are reliable enough for real workflows. We compare
+        outputs, measure failure modes, and document the evidence needed before a model or workflow is scaled.
+      </p>
+      <p class="hero-inline-links">
+        <strong>In plain terms:</strong>
+        <a href="#why">Why It Matters</a>
+        <a href="#evaluation">Evaluation</a>
+        <a href="#ocr-report">OCR Report</a>
+        <a href="#accuracy-papers">Papers</a>
+      </p>
+    </div>
+  </section>
+
+  <section id="why" class="scope reveal">
+    <div class="section-heading">
+      <p class="eyebrow">Why It Matters</p>
+      <h2>Accuracy before adoption</h2>
+    </div>
+    <div class="compute-grid">
+      <article class="scope-card">
+        <h3>Go / no-go evidence</h3>
+        <p>Accuracy testing helps decide whether an AI workflow should be adopted, changed, handed off, or stopped.</p>
+      </article>
+      <article class="scope-card">
+        <h3>Failure modes</h3>
+        <p>Good demos are not enough. We need to know where a model fails, how often, and what the operational impact is.</p>
+      </article>
+      <article class="scope-card">
+        <h3>Human review burden</h3>
+        <p>Accuracy work should estimate how much human review remains, not only whether the system can produce an answer.</p>
+      </article>
+      <article class="scope-card">
+        <h3>Cost and compute fit</h3>
+        <p>The most accurate option may not be the best operational choice if it is too slow, expensive, or hard to support.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="evaluation" class="scope reveal">
+    <div class="section-heading">
+      <p class="eyebrow">Evaluation Shape</p>
+      <h2>What accuracy work should capture</h2>
+    </div>
+    <div class="compute-grid compute-grid-2">
+      <article class="scope-card">
+        <h3>Representative data</h3>
+        <p>Use real or realistic samples that reflect the forms, documents, images, language, and edge cases teams handle.</p>
+      </article>
+      <article class="scope-card">
+        <h3>Field-level scoring</h3>
+        <p>For document AI, measure exact fields, missing values, hallucinations, parseability, and confidence separately.</p>
+      </article>
+      <article class="scope-card">
+        <h3>Workflow impact</h3>
+        <p>Accuracy should connect to the service workflow: triage speed, review effort, exception handling, and risk.</p>
+      </article>
+      <article class="scope-card">
+        <h3>Repeatable artifacts</h3>
+        <p>Notebooks, scripts, reports, and datasets should make results reproducible and easier to hand off.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="ocr-report" class="scope reveal">
+    <div class="section-heading">
+      <p class="eyebrow">Representative Report</p>
+      <h2>OCR extraction accuracy</h2>
+      <p class="section-intro">
+        The Cross-Engine OCR Extraction Comparison Report is an example of the evidence pattern: compare multiple
+        extraction approaches, score results, capture cost and failure modes, then use the evidence to inform whether a
+        workflow is ready for pilot, handoff, scale, or further testing.
+      </p>
+    </div>
+    <div class="compute-grid compute-grid-2">
+      <article class="scope-card">
+        <h3>Cross-Engine OCR Report</h3>
+        <p>
+          Head-to-head comparison of OCR and VLM extraction approaches for SDPR-style forms, focused on field accuracy,
+          cost, and practical workflow fit.
+        </p>
+        <p><a href="assets/papers/bc_ocr_engine_comparison_report.pdf">Open OCR comparison PDF</a></p>
+      </article>
+      <article class="scope-card">
+        <h3>How To Use This Pattern</h3>
+        <p>
+          Apply the same evaluation shape to other partner workloads: define the task, collect representative samples,
+          compare model/runtime options, measure accuracy and failure modes, and document operational tradeoffs.
+        </p>
+      </article>
+    </div>
+  </section>
+
+  <section id="accuracy-papers" class="publications reveal">
+    <div class="section-heading">
+      <p class="eyebrow">Accuracy Papers</p>
+      <h2>Published accuracy research</h2>
+    </div>
+    <div class="publication-table-host" data-default-stream="Accuracy">
+      {{PARTIAL_PUBLICATION_TABLE}}
+    </div>
+  </section>
+</main>

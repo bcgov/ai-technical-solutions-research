@@ -70,6 +70,7 @@ for page in "$PAGES_DIR"/*.html; do
 
   document="${document//\{\{NAV_INDEX\}\}/}"
   document="${document//\{\{NAV_COMPUTE\}\}/}"
+  document="${document//\{\{NAV_ACCURACY\}\}/}"
   document="${document//\{\{NAV_PUBLICATIONS\}\}/}"
 
   output_file="$OUT_DIR/$filename"

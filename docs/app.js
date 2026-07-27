@@ -127,6 +127,24 @@ const aiOperatorBenchmarkDetailsHtml = `
 
 const publications = [
   {
+    date: "2026-07-23",
+    title: "Sovereign AI Compute Guide",
+    stream: "Compute",
+    type: "Draft HTML",
+    url: "sovereign-ai-compute-guide.html",
+    summary: [
+      "Living draft for how BC Gov teams can request, size, and utilize sovereign AI compute on OpenShift.",
+      "Connects partner workload discovery, heterogeneous compute, GPU/MIG sizing, CPU+AMX capability, dynamic utilization, licensing boundaries, platform topology, and operational readiness into one sizing guide."
+    ].join("\n\n"),
+    detailsHtml: `
+      <div class="draft-notice">
+        <strong>Draft / living document:</strong>
+        This guide is being updated as Platform, ADSL, vendor, licensing, topology, and early adopter workload details
+        become clearer. Use it as a working sizing and planning aid, not as a final architecture decision.
+      </div>
+    `
+  },
+  {
     date: "2026-05-25",
     title: "Connected Government Services: Using AI to Help Applications Work Together",
     stream: "Agentic Systems",
@@ -182,12 +200,19 @@ const dateFormatter = new Intl.DateTimeFormat("en-CA", {
   day: "2-digit"
 });
 
+function parsePaperDate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return new Date(value);
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+}
+
 const streamRoutes = {
-  Compute: "compute.html"
+  Compute: "compute.html",
+  Accuracy: "accuracy.html"
 };
 
 function sortNewestFirst(items) {
-  return [...items].sort((a, b) => new Date(b.date) - new Date(a.date));
+  return [...items].sort((a, b) => parsePaperDate(b.date) - parsePaperDate(a.date));
 }
 
 function getDefaultStream() {
@@ -225,7 +250,7 @@ function renderRows(items) {
     const tr = document.createElement("tr");
 
     const dateCell = document.createElement("td");
-    dateCell.textContent = dateFormatter.format(new Date(paper.date));
+    dateCell.textContent = dateFormatter.format(parsePaperDate(paper.date));
 
     const titleCell = document.createElement("td");
     const details = document.createElement("details");
