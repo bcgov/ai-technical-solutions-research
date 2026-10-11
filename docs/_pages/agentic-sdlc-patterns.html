@@ -1,0 +1,584 @@
+<!-- TITLE: What we learned running agentic SDLC patterns | Research -->
+<!-- DESCRIPTION: Field account of BC Gov agentic SDLC remediation runs and the Digital Marketplace rebuild, with Alberta AI Garage and AI Factory patterns, numbers, and public repositories. -->
+<!-- NAV: publications -->
+<main id="top">
+  <section class="topic-hero reveal">
+    <div class="topic-left">
+      <a class="topic-back" href="publications.html">&larr; Back to Publications</a>
+      <h1>What we learned running agentic SDLC patterns</h1>
+    </div>
+    <div class="topic-right">
+      <p class="topic-lead">
+        A field account from the AI Technical Solutions team: how a vulnerability report becomes a reviewed change,
+        how a living application was rebuilt from its own behaviour, and which parts of Alberta’s AI Garage and AI
+        Factory are ready for another team to copy.
+      </p>
+      <p class="hero-inline-links">
+        <strong>On this page:</strong>
+        <a href="#why">Why it matters</a>
+        <a href="#patterns">Two patterns</a>
+        <a href="#sightline">Remediation</a>
+        <a href="#marketplace">Rebuild</a>
+        <a href="#alberta">Alberta</a>
+        <a href="#worked">What worked</a>
+        <a href="#failed">What failed</a>
+        <a href="#try">Try it</a>
+      </p>
+    </div>
+  </section>
+
+  <section id="why" class="scope reveal">
+    <div class="section-heading">
+      <p class="eyebrow">9 October 2026</p>
+      <h2>Why this account exists</h2>
+      <p class="section-intro">
+        The runs already happened. The pull requests, gate ledgers, and slide decks sat in repositories this team
+        could see and other teams could not use. This page is the public record. It does not wait on another
+        ministry, a vendor, or a central platform team. Where a number is below, it was counted from a public
+        repository or taken from a named source. Where a number does not exist, the page says so.
+      </p>
+    </div>
+    <div class="compute-grid">
+      <article class="scope-card">
+        <h3>Remediation</h3>
+        <p>
+          Project Sightline names vulnerable repositories. Three public forks then carried those findings through
+          an agentic pipeline: BC Parks attendance and revenue admin, CSCP restitution, and LEAR.
+        </p>
+      </article>
+      <article class="scope-card">
+        <h3>Greenfield rebuild</h3>
+        <p>
+          <a href="https://github.com/bcgov/digital-marketplace-next">digital-marketplace-next</a> rebuilds the
+          Digital Marketplace from recovered behaviour. It is an experiment. It has never been deployed and must
+          not be used with real data.
+        </p>
+      </article>
+      <article class="scope-card">
+        <h3>Alberta patterns</h3>
+        <p>
+          The AI Garage fixes a system in place. The AI Factory builds a new one the government owns. We used both
+          as the map for the runs above, and we kept their numbers labelled as theirs.
+        </p>
+      </article>
+      <article class="scope-card">
+        <h3>Held back</h3>
+        <p>
+          The Ministry of Transportation CIS Java remediation belongs to Rogene Lacanienta’s team. It is not in
+          this paper. See <a href="#transportation">that section</a>.
+        </p>
+      </article>
+    </div>
+  </section>
+
+  <section id="patterns" class="scope reveal">
+    <div class="section-heading">
+      <p class="eyebrow">The map</p>
+      <h2>Two patterns, and what a scan is for</h2>
+      <p class="section-intro">
+        Alberta’s published framing, in
+        <a href="https://thevelocitywhitepapers.com/en/paper/zgym1">The Four Approaches to AI Modernization</a>,
+        is the one we used. The Garage repairs a system where it stands. The Factory builds a new application
+        against one specification, with specialist agents checking each other and a person accepting or rejecting
+        the result. A scan is the input to that choice. It is not the delivery.
+      </p>
+    </div>
+    <div class="benchmark-table-wrap">
+      <table class="benchmark-table">
+        <thead>
+          <tr>
+            <th>Pattern</th>
+            <th>When it fits</th>
+            <th>What we actually ran</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>AI Garage</td>
+            <td>The application should keep living, and the defect is local enough to patch under tests.</td>
+            <td>Sightline-style rapid assessments turned into issues, then spec, plan, and implementation pull requests on three forks.</td>
+          </tr>
+          <tr>
+            <td>AI Factory</td>
+            <td>The application is tangled, vendor-locked, or cheaper to replace than to patch safely.</td>
+            <td>Digital Marketplace rebuilt in 21 slices from acceptance criteria recovered from the original system.</td>
+          </tr>
+          <tr>
+            <td>Project Sightline</td>
+            <td>You need a list of repositories with vulnerability and technical-debt findings.</td>
+            <td>Used as a selector and a backlog source. It does not name an owner, a business case, data sensitivity, or whether to fix, rebuild, or retire.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="section-intro">
+      That last row is the practical limit. A report can start a conversation with the team that owns the system.
+      It cannot sign a checkpoint. The worst findings in this kind of scan sit on applications nobody has claimed.
+      If nobody will accept a merge, the pipeline has nothing to attach to.
+    </p>
+  </section>
+
+  <section id="sightline" class="scope reveal">
+    <div class="section-heading">
+      <p class="eyebrow">Garage, on our code</p>
+      <h2>Project Sightline remediation runs</h2>
+      <p class="section-intro">
+        Each run started from a rapid assessment, filed the recommended findings as GitHub issues, and sent every
+        finding through a specification, a plan, and an implementation pull request. Agents do not merge. A person,
+        or in the parks pilot a simulated reviewer following the same checklist, accepts the change. After the
+        backlog closed, a separate pass re-read the original finding against the code, because a closed issue is
+        not the same thing as a fixed defect.
+      </p>
+    </div>
+
+    <h3>BC Parks attendance and revenue admin</h3>
+    <p class="section-intro">
+      Repository:
+      <a href="https://github.com/bcgov/bcparks-ar-admin-agentic-b">bcgov/bcparks-ar-admin-agentic-b</a>.
+      An earlier fork,
+      <a href="https://github.com/bcgov/bcparks-ar-admin-agentic">bcgov/bcparks-ar-admin-agentic</a>,
+      was the first enrolment and was left as a partial pilot. The numbers below are from the second fork.
+    </p>
+    <div class="benchmark-table-wrap">
+      <table class="benchmark-table">
+        <thead>
+          <tr>
+            <th>Measure</th>
+            <th>Result</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Recommended findings shipped</td>
+            <td>45 of 45. Seven optional and three duplicate rows were left untouched on purpose.</td>
+          </tr>
+          <tr>
+            <td>Wall clock</td>
+            <td>First pull request 31 Aug 2026 21:36 UTC, last merge 1 Sep 2026 18:18 UTC. About 20.7 hours for the whole backlog, about 28 minutes of calendar time per finding.</td>
+          </tr>
+          <tr>
+            <td>Pull requests</td>
+            <td>149 merged, 7 closed without merge. Open-to-merge time is typically under a minute, because the change was already built before the pull request was opened. That clock is not reviewer effort.</td>
+          </tr>
+          <tr>
+            <td>Checkpoint gate</td>
+            <td>93.8% after 5 slices, 97% after 10. The later full-backlog artifact stopped reporting the rate; sampled pull requests stayed in the same range.</td>
+          </tr>
+          <tr>
+            <td>Spec trace</td>
+            <td>Implementation pull requests missing a spec reference: 0% across the pass. 79 criterion ids ended in the registry.</td>
+          </tr>
+          <tr>
+            <td>Independent re-check</td>
+            <td>35 fixed, 8 partial, 2 not fixed, against the original assessment wording rather than the closed issue.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="section-intro">
+      The two misses and most of the partials have a cause, and it is useful. One implementation pull request
+      merged an evidence file and no code: the narrative said the logging levels had changed, and
+      <code>keycloak.service.ts</code> had not. Several other findings were signed at a narrower scope than the
+      assessment asked for, then verified against that narrower contract. The pipeline was faithful to the
+      contract and incomplete against the original defect. Reviewer effort on this fork was a simulated
+      checkpoint, so the 97% figure is a gate result, not a count of hours a person spent reading diffs.
+    </p>
+
+    <h3>CSCP restitution</h3>
+    <p class="section-intro">
+      Repository:
+      <a href="https://github.com/bcgov/pssg-cscp-restitution-agentic">bcgov/pssg-cscp-restitution-agentic</a>,
+      on branch <code>development</code>. Copilot’s coding agent implemented most slices. An operator had to
+      nudge Actions, and finished the tail of the backlog by hand when credits ran out.
+    </p>
+    <div class="benchmark-table-wrap">
+      <table class="benchmark-table">
+        <thead>
+          <tr>
+            <th>Measure</th>
+            <th>Result</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Recommended findings shipped</td>
+            <td>36 of 36. Three informational findings were never filed.</td>
+          </tr>
+          <tr>
+            <td>Wall clock</td>
+            <td>First pull request 3 Sep 2026 19:12 UTC, last merge 4 Sep 2026 20:23 UTC. About 25.2 hours, about 42 minutes of calendar time per finding.</td>
+          </tr>
+          <tr>
+            <td>Pull requests</td>
+            <td>108 merged, 0 closed without merge. That is one specification, one plan, and one implementation pull request per finding.</td>
+          </tr>
+          <tr>
+            <td>Independent re-check</td>
+            <td>35 fixed, 1 partial, 0 not fixed. The partial is VULN-004: the signed slice added maximum lengths and left email and phone format checks for a later slice. The implementation matched the signed scope.</td>
+          </tr>
+          <tr>
+            <td>Who did the work</td>
+            <td>Copilot for the early and middle slices. From finding 30 onward, Copilot credits were exhausted and the operator shipped the remaining slices locally, still through the same spec, plan, and review comments.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="section-intro">
+      Reviewer effort here was real and narrow. The operator’s repeated job was an empty commit so GitHub Actions
+      would leave the <code>action_required</code> state and actually run the checkpoint gate. A CodeQL
+      default-setup error failed the aggregate gate on slice after slice even when Trivy and the tests were
+      green. The team recorded that residual and kept moving, which kept the backlog moving and also trained
+      everyone to ignore a red check. Both facts belong in the lesson.
+    </p>
+
+    <h3>LEAR</h3>
+    <p class="section-intro">
+      Repository: <a href="https://github.com/bcgov/lear-agentic">bcgov/lear-agentic</a>.
+      This run shows the pipeline stopping, which is part of the result. Forty-one pull requests were closed
+      without merge, including a merge-train, and <code>main</code> was reset to upstream plus a fresh
+      enrolment. One pull request has been merged, and it is the enrolment itself. The first real slice
+      (CONFIG-003) reached a green build and waited for a person. Agents do not merge their own work. The rest
+      of the assessment backlog is still open. Treat LEAR as the control: a harness that can generate a backlog
+      still needs a named person who will accept the first change before a second one is worth starting.
+    </p>
+  </section>
+
+  <section id="marketplace" class="scope reveal">
+    <div class="section-heading">
+      <p class="eyebrow">Factory, on our code</p>
+      <h2>Digital Marketplace, rebuilt</h2>
+      <p class="section-intro">
+        The original service is
+        <a href="https://github.com/bcgov/digital_marketplace">bcgov/digital_marketplace</a>.
+        The experiment is
+        <a href="https://github.com/bcgov/digital-marketplace-next">bcgov/digital-marketplace-next</a>,
+        produced through
+        <a href="https://github.com/alex-struk/agentic-sdlc">agentic-sdlc</a>.
+        The repository keeps the brief, the recovered specification, the tests, the plan, the application, and
+        every gate ruling. The rebuilt application runs on a developer machine. There is no deployment stage.
+        The top navigation in the rebuild does not yet link the opportunity and organization lists; those routes
+        exist at <code>/opportunities</code> and <code>/organizations</code>.
+      </p>
+    </div>
+    <p class="section-intro">
+      The method is the part worth copying. Agents read the original and wrote acceptance criteria. Tests were
+      derived from those criteria without seeing an implementation, then run against the original application
+      so the tests had to describe what the system really does. The plan cut the criteria into 21 slices. A
+      builder implemented each slice. Verify ran that slice’s tests and the earlier slices’ tests before a
+      reviewer could approve. Routine rulings, such as a re-derived test, could be approved by automated
+      checks. A person could take any seat.
+    </p>
+    <div class="benchmark-table-wrap">
+      <table class="benchmark-table">
+        <thead>
+          <tr>
+            <th>Measure</th>
+            <th>Result, counted from the published ledger on 4 Oct 2026</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Criteria recovered</td>
+            <td>295 rows in the coverage table: 286 accepted, 9 obsolete, 3 still open questions.</td>
+          </tr>
+          <tr>
+            <td>Slices</td>
+            <td>All 21 slices have an approval in the gate ledger. First slice approval 25 Sep 2026, last slice approval 4 Oct 2026. About 9.8 days of calendar time.</td>
+          </tr>
+          <tr>
+            <td>Time per slice</td>
+            <td>Median gap between consecutive slice approvals is about 3.2 hours. The gap from slice 1 to slice 2 is about 142 hours. The early slices are where the specification and the test adapter were still being fought.</td>
+          </tr>
+          <tr>
+            <td>Gate rulings</td>
+            <td>655 rulings: 464 approvals, 185 returns, 6 withdrawals. Of the 110 rulings on a build slice, 87 were returns. Work came back about four times per slice before it stayed approved.</td>
+          </tr>
+          <tr>
+            <td>Reviewer effort</td>
+            <td>25 of the 655 rulings were a person, all in the tech-lead seat: 15 approvals and 10 returns. The other rulings were a persona agent or the runner. The ledger’s cost column on agent rulings sums to about $538, median about $0.61. That is the cost of the ruling step, not the cost of writing the slice.</td>
+          </tr>
+          <tr>
+            <td>Tests against the original</td>
+            <td>Full run on 4 Oct 2026: 199 pass, 44 fail, 7 unbound, 15 not testable, 265 rows. Of the tests that could run and bind, 81.9% passed. The 44 failures are information: the recovered criteria and the original system disagree, and someone has to decide which side is right.</td>
+          </tr>
+          <tr>
+            <td>Tests against the rebuild</td>
+            <td>A slice was approved when verify reported that every criterion the slice claimed was passing, including earlier slices. The run log uses that sentence for 15 of the 21 slices; the ledger shows an approval for all 21. There is no separate full-suite row for the new application in the results table. Do not read the 81.9% figure as the rebuild’s pass rate. That figure is the original system.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="section-intro">
+      The returns are the result, not a blemish. Slice 21 was sent back because criteria could not be exercised,
+      then because they failed, then because an earlier slice’s criterion regressed, and only then verified
+      clean. Slice 14 was refused when the builder was asked to change a design file the build stage is not
+      allowed to write. The gate’s job is to send that condition to the stage that can carry it out.
+    </p>
+  </section>
+
+  <section id="alberta" class="scope reveal">
+    <div class="section-heading">
+      <p class="eyebrow">What we brought home</p>
+      <h2>AI Garage and AI Factory, as Alberta described them</h2>
+      <p class="section-intro">
+        These figures are Alberta’s, from the Velocity papers and from the August 2026 AI Academy Level 3
+        sessions this team attended. They are included so a BC team can see the shape of the pattern at estate
+        scale. They are not measurements of the runs in the previous sections. Classroom figures from the
+        Academy were spoken in the room; treat them as the presenter’s account until a paper or a dataset
+        restates them.
+      </p>
+    </div>
+
+    <h3>AI Garage</h3>
+    <p class="section-intro">
+      The Garage points a harness at the existing estate. In the Academy walkthrough the sequence was: a Git
+      Insights brief is a lead, not a verdict; a second scan (dependency and application checks, plus a
+      red-team and blue-team pass) re-verifies before anyone edits; repositories that already have tests and a
+      clean dependency bump are patched; repositories that are vendor-locked or tangled are routed to a rebuild
+      instead. The presenter described one orchestrator driving 30 virtual machines and about 300 coding-agent
+      instances, fixing on the order of 55,000 of about 79,000 known dependency findings in about 40 hours, at
+      a stated compute cost of $125,000 (about $34 a repository) after a scan he put at about $10 a repository.
+      He also said about 2,600 pull requests were staged and not merged, because the next missing piece was a
+      smoke test good enough to hand to the team that owns the repository. About 73% of the repositories had
+      no continuous integration, so the harness was adding tests in the same pass that claimed a fix.
+    </p>
+    <p class="section-intro">
+      The lesson we kept is the one our own re-checks confirmed at a much smaller scale. A scan starts the
+      work. A second check, against the original wording of the finding, is what you are allowed to call a
+      fix. And a pull request that the owning team has not accepted is still a proposal.
+    </p>
+
+    <h3>AI Factory</h3>
+    <p class="section-intro">
+      The Factory builds new. Alberta’s published case study,
+      <a href="https://thevelocitywhitepapers.com/en/paper/rhx4t">From Five Months to Four Days</a>,
+      gives two numbers from their own staff. The Remote Area Heating Allowance application, hand-written in
+      Java over five months in the early 2000s, was rebuilt in four days with a public portal the original did
+      not have. The Alberta Classroom Information Portal was delivered in eleven weeks for about $108,000,
+      against a traditional estimate of $1.3 million to $1.9 million and up to eighteen months. The paper
+      summarises the pair as a 25-fold speed change and a 95% drop in delivery cost. Those are Alberta’s
+      delivery accounts, with their own baselines.
+    </p>
+    <p class="section-intro">
+      The Academy also showed a smaller version of the same idea: several agents building the same specification
+      in parallel, so a mistake that appears in every build is blamed on the template rather than on one model.
+      That exercise produced a working application in a teaching session. It was not a production launch.
+      Our factory-shaped run is the Digital Marketplace rebuild above: one specification, tests locked to the
+      original behaviour, slices, and a gate that returns work. We have not reproduced a four-day or an
+      eleven-week production cutover, and this page does not claim one.
+    </p>
+    <div class="benchmark-table-wrap">
+      <table class="benchmark-table">
+        <thead>
+          <tr>
+            <th>If you are choosing</th>
+            <th>Start here</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>The defect is local, tests exist or can be added, and someone owns the merge.</td>
+            <td>Garage. File the finding, sign a slice no wider than you will verify, and re-read the original ticket after merge.</td>
+          </tr>
+          <tr>
+            <td>The repository is the product, and patching it would preserve the tangle.</td>
+            <td>Factory. Recover acceptance criteria, prove the tests on the old system, then build the new one in slices the gate can refuse.</td>
+          </tr>
+          <tr>
+            <td>You only have a vulnerability report.</td>
+            <td>Stop and find the owner. Sightline, and Alberta’s Git Insights the same way, will hand you a repository with nobody’s name on it.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="worked" class="scope reveal">
+    <div class="section-heading">
+      <p class="eyebrow">Worth keeping</p>
+      <h2>What worked</h2>
+    </div>
+    <div class="compute-grid">
+      <article class="scope-card">
+        <h3>A finding becomes three pull requests</h3>
+        <p>
+          Specification, plan, implementation. On restitution that produced exactly 108 merged pull requests for
+          36 findings, and the independent re-check found no empty or wrong diff hiding behind a closed issue.
+        </p>
+      </article>
+      <article class="scope-card">
+        <h3>The gate returns work</h3>
+        <p>
+          On the Marketplace rebuild, 87 of 110 build-slice rulings were returns. Slices that could not be
+          exercised, or that broke an earlier slice, did not get an approval until verify was clean.
+        </p>
+      </article>
+      <article class="scope-card">
+        <h3>A person rules the exception</h3>
+        <p>
+          Twenty-five human rulings out of 655, ten of them returns, were enough to steer the rebuild. The
+          pattern holds when the person sees the refusals and the scope changes, and stays off the routine
+          test re-derivation.
+        </p>
+      </article>
+      <article class="scope-card">
+        <h3>Re-check against the original words</h3>
+        <p>
+          Parks was 35 fixed, 8 partial, 2 not fixed. Restitution was 35 fixed, 1 partial, 0 not fixed. Those
+          counts are the ones to quote. “45 of 45 issues closed” overstates what the code does.
+        </p>
+      </article>
+      <article class="scope-card">
+        <h3>Calendar time can be short</h3>
+        <p>
+          A recommended security backlog of this size moved in about a day of wall clock once the harness, the
+          assessment, and a person who would accept merges were already in place. Setup and the first accepted
+          slice are the long part. LEAR is still in that part.
+        </p>
+      </article>
+      <article class="scope-card">
+        <h3>Tests written before the new code</h3>
+        <p>
+          Marketplace tests were derived from criteria and run on the original system first. Disagreement
+          (44 failing tests on the original) showed up before the rebuild could paper over it.
+        </p>
+      </article>
+    </div>
+  </section>
+
+  <section id="failed" class="scope reveal">
+    <div class="section-heading">
+      <p class="eyebrow">Worth avoiding</p>
+      <h2>What failed</h2>
+    </div>
+    <div class="benchmark-table-wrap">
+      <table class="benchmark-table">
+        <thead>
+          <tr>
+            <th>What happened</th>
+            <th>Where</th>
+            <th>What to do on the next run</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>An evidence file described a fix the pull request did not contain.</td>
+            <td>Parks, LOG-002. The implementation pull request changed <code>docs/pr-evidence.md</code> only.</td>
+            <td>Refuse an implementation pull request that does not touch a path named in the ticket or the feature file.</td>
+          </tr>
+          <tr>
+            <td>The signed slice was narrower than the assessment, and the pipeline then reported the finding shipped.</td>
+            <td>Parks logging and test findings; restitution VULN-004.</td>
+            <td>When the specification drops part of the original expected result, write that down as an accepted gap and leave a follow-up. Keep it out of the “fixed” tally.</td>
+          </tr>
+          <tr>
+            <td>GitHub Actions sat on <code>action_required</code> until a person pushed an empty commit.</td>
+            <td>Restitution, repeated from the first slices.</td>
+            <td>Budget operator time for workflow approval, or pre-approve the agent’s identity. This ate more human attention than reading the diffs.</td>
+          </tr>
+          <tr>
+            <td>A standing CodeQL failure trained the run to ignore a red gate.</td>
+            <td>Restitution, from the middle of the backlog onward.</td>
+            <td>Split the security checks so a known residual cannot mask a new Trivy or test failure.</td>
+          </tr>
+          <tr>
+            <td>Coding-agent credits ran out, and the operator became the builder.</td>
+            <td>Restitution, findings 30 through 36.</td>
+            <td>Put a project budget on the run before the first slice. A backlog that depends on a monthly seat cap will stop in the middle.</td>
+          </tr>
+          <tr>
+            <td>A generated backlog was closed without merge.</td>
+            <td>LEAR. 41 pull requests closed, one enrolment merge, the first real slice waiting on a person.</td>
+            <td>Do not open the second slice until a named owner has merged the first. Agents are instructed not to merge themselves, and that rule is the point.</td>
+          </tr>
+          <tr>
+            <td>The receipt collector reported missing reviews that were actually there.</td>
+            <td>Parks. Review-receipt miss rate sat at 100%, then 75%, because the collector skipped evidence files when the pull request title lacked a tag.</td>
+            <td>Fix the measure before you manage to it. A red metric that is a parser bug will get ignored, and then a real miss will too.</td>
+          </tr>
+          <tr>
+            <td>The rebuild’s results table has a full run for the original system and none for the new one.</td>
+            <td>Marketplace, results ledger, 4 Oct 2026.</td>
+            <td>Publish one end-to-end pass/fail row for the new application beside the original. Slice-level “every claimed criterion passes” is necessary and is not that row.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="transportation" class="scope reveal">
+    <div class="section-heading">
+      <p class="eyebrow">External case</p>
+      <h2>Ministry of Transportation CIS remediation</h2>
+      <p class="section-intro">
+        This work belongs to Rogene Lacanienta’s team at Transportation and Transit. It is the external case we
+        most wanted in a paper other teams could use: a Java 8 Struts system, lifted with agents, with a person
+        in the centre of the loop. This page does not describe their method, their timeline, or their results.
+        Those details stay with the team that did the work until Rogene agrees they can be published.
+      </p>
+    </div>
+  </section>
+
+  <section id="try" class="scope reveal">
+    <div class="section-heading">
+      <p class="eyebrow">For another team</p>
+      <h2>How to try the patterns</h2>
+      <p class="section-intro">
+        Start from a repository you can afford to be wrong about. Fork it, or rebuild it beside the original.
+        Enrol the pipeline, file one finding or one slice, and merge it yourself before you let a backlog run.
+        The public repositories below are the ones that were public on 9 October 2026.
+      </p>
+    </div>
+    <div class="benchmark-table-wrap">
+      <table class="benchmark-table">
+        <thead>
+          <tr>
+            <th>Repository</th>
+            <th>What you will find</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="https://github.com/alex-struk/agentic-sdlc">alex-struk/agentic-sdlc</a></td>
+            <td>The pipeline the Marketplace rebuild installed: skills, checks, workflows, and a runner a project takes by reference.</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/bcgov/digital-marketplace-next">bcgov/digital-marketplace-next</a></td>
+            <td>The greenfield record. Read the README, then <code>spec/</code>, <code>plan/tasks.md</code>, and <code>site/gates.md</code>. Local run instructions are in the README. Invented seed data only.</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/bcgov/bcparks-ar-admin-agentic-b">bcgov/bcparks-ar-admin-agentic-b</a></td>
+            <td>The completed parks remediation, including the metrics issues and the evidence-only miss.</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/bcgov/pssg-cscp-restitution-agentic">bcgov/pssg-cscp-restitution-agentic</a></td>
+            <td>The restitution remediation on <code>development</code>, including the operator adjustments in the pull request history.</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/bcgov/lear-agentic">bcgov/lear-agentic</a></td>
+            <td>The run that stopped at the first human merge. Useful before you scale a backlog.</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/bcgov/tier1-pattern-test">bcgov/tier1-pattern-test</a></td>
+            <td>A small public enrolment of the thinner automation: issue triage, docs drift, and a comment on a failed build.</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/bcgov/tier2-pattern-test">bcgov/tier2-pattern-test</a></td>
+            <td>A small public enrolment of the checkpointed pattern, for teams that want the gates before they want a full rebuild.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="section-intro">
+      Alberta’s papers, if you want the pattern in their words:
+      <a href="https://thevelocitywhitepapers.com/en/paper/zgym1">the four approaches</a>
+      and
+      <a href="https://thevelocitywhitepapers.com/en/paper/rhx4t">the factory case study</a>.
+    </p>
+    <p class="section-intro">
+      A reasonable first week is one repository, one owner, and one finding that already has a test. If that
+      pull request cannot be reviewed by someone who would be on the hook in production, the rest of the
+      backlog will reproduce LEAR: a queue of proposals and a single merged enrolment.
+    </p>
+  </section>
+</main>
