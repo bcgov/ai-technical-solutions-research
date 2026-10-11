@@ -127,6 +127,17 @@ const aiOperatorBenchmarkDetailsHtml = `
 
 const publications = [
   {
+    date: "2026-10-09",
+    title: "What we learned running agentic SDLC patterns",
+    stream: "Agentic Systems",
+    type: "HTML",
+    url: "agentic-sdlc-patterns.html",
+    summary: [
+      "A field account of this team's remediation runs and the greenfield Digital Marketplace rebuild, set beside Alberta's AI Garage and AI Factory patterns, so another team can try the same pipeline.",
+      "Includes wall-clock time per change, test and fix-verification rates, and how much of the review a person actually did. Public pipeline repositories are linked. The Ministry of Transportation CIS case is withheld pending that team's agreement."
+    ].join("\n\n")
+  },
+  {
     date: "2026-07-23",
     title: "Sovereign AI Compute Guide",
     stream: "Compute",
@@ -208,7 +219,8 @@ function parsePaperDate(value) {
 
 const streamRoutes = {
   Compute: "compute.html",
-  Accuracy: "accuracy.html"
+  Accuracy: "accuracy.html",
+  "Agentic Systems": "agentic-sdlc-patterns.html"
 };
 
 function sortNewestFirst(items) {
