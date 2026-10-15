@@ -127,6 +127,17 @@ const aiOperatorBenchmarkDetailsHtml = `
 
 const publications = [
   {
+    date: "2026-10-15",
+    title: "Set up the Azure SRE Agent and monitoring for your application",
+    stream: "Agentic Systems",
+    type: "HTML",
+    url: "sre-agent-and-monitoring.html",
+    summary: [
+      "A dev and test guide to connecting Azure SRE Agent to application logs and telemetry, with paths for apps inside and outside Azure.",
+      "Covers monitoring, alerting, scheduled checks, permissions, lessons learned, and questions to resolve before production. The examples use sandbox subscriptions and synthetic data."
+    ].join("\n\n")
+  },
+  {
     date: "2026-10-09",
     title: "What we learned running agentic SDLC patterns",
     stream: "Agentic Systems",
