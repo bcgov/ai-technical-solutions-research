@@ -46,7 +46,7 @@
       hour?&quot;.</li>
     <li>Pick up Azure Monitor alerts, open an investigation, and merge repeat firings of one alert rule
       into a single thread.</li>
-    <li>Run scheduled tasks, such as a daily health check, and send summaries by Outlook, Gmail, or Teams.</li>
+    <li>Run scheduled tasks, such as a daily health check, and send summaries by Outlook or Teams.</li>
     <li>Propose mitigations based on the source code you give it. In Review mode, Azure write operations wait for an SRE
       Agent administrator.</li>
   </ul>
@@ -651,7 +651,7 @@ az rest --method patch --url &quot;$url&quot; --body &quot;$body&quot;
     </li>
   </ol>
   <h2 id="alerting-and-email-notifications">Alerting and email notifications</h2>
-  <p>You can add Gmail, Office 365 Outlook, and Microsoft Teams connections through the <strong>Build + Setup &gt;
+  <p>You can add Office 365 Outlook and Microsoft Teams connections through the <strong>Build + Setup &gt;
       Extensions &gt; Connectors &gt; Add Connector &gt; Notifications.</strong>
     These require signing in to the respective accounts and granting permissions to the agent. This allows the agent
     to read and send messages after performing scheduled tasks.</p>
