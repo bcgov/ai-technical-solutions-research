@@ -2,225 +2,226 @@
 <!-- DESCRIPTION: A dev and test guide to connecting Azure SRE Agent to application telemetry, Azure Monitor alerts, and scheduled checks. -->
 <!-- NAV: publications -->
 <main id="top" class="sre-guide">
-    <h1 id="set-up-the-azure-sre-agent-and-monitoring-for-your-application">Set up the Azure SRE Agent and monitoring
-      for your application</h1>
-    <blockquote>
-      <p><strong>Dev and test only. Not a production pattern.</strong> Everything here was tried in sandbox
-        subscriptions with synthetic data. A production application must follow the B.C. government
-        Public Cloud Landing Zone rules and policies, and the production path may be quite different
-        (identity, networking, data residency, support model). That
-        path has not been explored yet. Plan it with the Public Cloud team before you copy anything here
-        into production.</p>
-    </blockquote>
-    <blockquote>
-      <p>Written from two setups: <a
-          href="https://github.com/KaruzaD/ai-adoption-document-intelligence/tree/944d51f9d8e692eb3016a35ab7b6a4fefb5870b0">ai-adoption-document-intelligence</a>
-        (an app
-        that runs locally and on OpenShift) and <a
-          href="https://github.com/KaruzaD/digital-marketplace-next/tree/7078cba0dfe52e0211fe8fedf654b9dfa7d41f8b">digital-marketplace-next</a>
-        (an app that runs on
-        Azure Container Apps). Items marked <strong>untested</strong> have not been run in either repository.</p>
-    </blockquote>
-    <p><a href="https://learn.microsoft.com/en-us/azure/sre-agent/overview">Azure SRE Agent</a> investigates
-      application health for you: it reads your telemetry, answers questions, reacts to alerts and runs
-      scheduled checks. This guide shows how a team connects an application to it for a dev or test
-      environment, and sets up alerting, including email.</p>
-    <h2 id="on-this-page">On this page</h2>
-    <ul>
-      <li><a href="#what-the-agent-does-and-does-not-do">What the agent does and does not do</a></li>
-      <li><a href="#choose-your-path">Choose your path</a></li>
-      <li><a href="#prerequisites-and-permissions">Prerequisites and permissions</a></li>
-      <li><a href="#path-a-application-outside-azure">Path A: application outside Azure</a></li>
-      <li><a href="#path-b-azure-native-application">Path B: Azure-native application</a></li>
-      <li><a href="#connect-the-application-to-the-agent">Connect the application to the agent</a></li>
-      <li><a href="#alerting-and-email-notifications">Alerting and email notifications</a></li>
-      <li><a href="#lessons-learned">Lessons learned</a></li>
-      <li><a href="#before-you-go-to-production">Before you go to production</a></li>
-    </ul>
-    <h2 id="what-the-agent-does-and-does-not-do">What the agent does and does not do</h2>
-    <p><strong>It does</strong></p>
-    <ul>
-      <li>Query the Azure resources you give it (Log Analytics, Application Insights, Azure Monitor
-        metrics and alerts, resource configuration) with its own managed identity.</li>
-      <li>Answer questions such as &quot;why is this service failing?&quot; and &quot;what changed in the last
-        hour?&quot;.</li>
-      <li>Pick up Azure Monitor alerts, open an investigation, and merge repeat firings of one alert rule
-        into a single thread.</li>
-      <li>Run scheduled tasks, such as a daily health check, and send summaries by Outlook, Gmail, or Teams.</li>
-      <li>Propose mitigations. In Review mode, Azure write operations wait for an SRE Agent administrator.</li>
-    </ul>
-    <p><strong>It does not</strong></p>
-    <ul>
-      <li><strong>Collect or ship logs.</strong> It reads what is already in Azure. An app that is not on Azure needs a
-        shipper (Path A).</li>
-      <li><strong>Create alerts.</strong> It reacts to alert rules you define; it does not watch your app on its own.
-      </li>
-      <li><strong>See anything you did not ship.</strong> If a line was filtered out or never logged, the agent cannot
-        explain it.</li>
-      <li><strong>Gate everything behind approval.</strong> Review mode only asks for approval on Azure infrastructure
-        operations. Sending email or posting to Teams is not gated; use
-        <a href="https://learn.microsoft.com/en-us/azure/sre-agent/tool-access-policies">tool access policies or
-          hooks</a>
-        if you need a checkpoint.
-      </li>
-    </ul>
-    <p><strong>What it reads from application logs</strong></p>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Where the app runs</th>
-            <th>What the agent can read</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Outside Azure</td>
-            <td>Only the columns of your custom table: whatever your shipper sends, typically a timestamp, service,
-              level, status code and the log line itself.</td>
-          </tr>
-          <tr>
-            <td>Azure Container Apps</td>
-            <td>Console and system logs in the workspace (<code>ContainerAppConsoleLogs_CL</code>,
-              <code>ContainerAppSystemLogs_CL</code>), plus Application Insights requests, exceptions, dependencies and
-              traces, and platform metrics.
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <p>The agent sends what it reads to a language model. Log lines can contain personal information, so
-      keep user data, tokens and document content out of logs it can see, and confirm your Privacy Impact
-      Assessment covers this flow.</p>
-    <h2 id="choose-your-path">Choose your path</h2>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th></th>
-            <th>Path A: outside Azure</th>
-            <th>Path B: Azure-native</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Example</td>
-            <td><a
-                href="https://github.com/KaruzaD/ai-adoption-document-intelligence/tree/944d51f9d8e692eb3016a35ab7b6a4fefb5870b0">ai-adoption-document-intelligence</a>
-              (local, OpenShift)</td>
-            <td><a
-                href="https://github.com/KaruzaD/digital-marketplace-next/tree/7078cba0dfe52e0211fe8fedf654b9dfa7d41f8b">digital-marketplace-next</a>
-              (Container Apps)</td>
-          </tr>
-          <tr>
-            <td>How logs reach Azure</td>
-            <td>You ship a filtered copy with Fluent Bit</td>
-            <td>Built in: Container Apps to Log Analytics, and OpenTelemetry to Application Insights</td>
-          </tr>
-          <tr>
-            <td>Identity that writes logs</td>
-            <td>Entra app registration, or your own user while prototyping</td>
-            <td>None needed; the platform writes them</td>
-          </tr>
-          <tr>
-            <td>Main effort</td>
-            <td>Pipeline, filtering, and an identity request</td>
-            <td>Infrastructure as code and role assignments</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <p>Everything below the paths (connecting the agent, alerting) applies to both.</p>
-    <h2 id="prerequisites-and-permissions">Prerequisites and permissions</h2>
-    <ul>
-      <li>An Azure subscription in your Project Set and a resource group for monitoring resources.</li>
-      <li>Azure CLI, signed in with <code>az login</code>.</li>
-      <li>Network access to <code>*.azuresre.ai</code> and <code>sre.azure.com</code>.</li>
-      <li>An SRE Agent. Create one, or reuse a team agent; see <a href="#connect-the-application-to-the-agent">Connect
-          the application to the
-          agent</a>.</li>
-    </ul>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>You need</th>
-            <th>To do</th>
-            <th>Notes</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Owner, or Contributor plus User Access Administrator, on the resource group</td>
-            <td>Create the agent and assign it roles</td>
-            <td>A conditional User Access Administrator grant limited to the roles you assign is tighter.</td>
-          </tr>
-          <tr>
-            <td>Contributor on the monitoring resource group</td>
-            <td>Create the workspace, Application Insights, alert rules, action group</td>
-            <td>Path B pipelines need this at subscription scope if they create the resource group.</td>
-          </tr>
-          <tr>
-            <td>Monitoring Metrics Publisher <strong>on the data collection rule</strong></td>
-            <td>Ship logs (Path A)</td>
-            <td>A workspace or resource-group grant returns 403.</td>
-          </tr>
-          <tr>
-            <td>An Entra app registration, if not using your own user</td>
-            <td>Ship logs from a deployed environment (Path A)</td>
-            <td>Not self-service; see Path A.</td>
-          </tr>
-          <tr>
-            <td>SRE Agent Administrator</td>
-            <td>Approve the agent&#39;s proposed actions</td>
-            <td>Only administrators can approve.</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <p>Agent creation gives the agent a user-assigned managed identity. The read roles it needs on your
-      monitoring resource group are Reader, Monitoring Reader and Log Analytics Reader. Agent creation
-      also assigns Monitoring Contributor at subscription scope so it can acknowledge and close alerts.
-      Check what your agent holds before you rely on it.</p>
-    <h3 id="landing-zone-checks">Landing Zone checks</h3>
-    <p>These can block a setup, so check them first. Raise a
-      <a href="https://citz-do.atlassian.net/servicedesk/customer/portal/3">Public Cloud Service Request</a> for any
-      exception.
-    </p>
-    <ul>
-      <li><strong>Region.</strong> The Landing Zone allows Canada Central and Canada East. Keep the workspace,
-        collection
-        endpoint, and your resources in Canada Central.</li>
-      <li><strong>Public endpoints.</strong> Policy denies many public PaaS endpoints and plain-HTTP ingress. Path A
-        needs
-        to reach the collection endpoint from outside Azure.</li>
-      <li><strong>Identity.</strong> App registrations and client secrets are exceptions, not defaults (Path A).</li>
-    </ul>
-    <h2 id="path-a-application-outside-azure">Path A: application outside Azure</h2>
-    <p>Use this when the app runs locally, on OpenShift, or anywhere else Azure cannot see.</p>
-    <pre><code>app logs ─&gt; Fluent Bit ─&gt; Data Collection Endpoint ─&gt; Data Collection Rule ─&gt; Log Analytics table
+  <h1 id="set-up-the-azure-sre-agent-and-monitoring-for-your-application">Set up the Azure SRE Agent and monitoring
+    for your application</h1>
+  <blockquote>
+    <p><strong>Dev and test only. Not a production pattern.</strong> Everything here was tried in sandbox
+      subscriptions with synthetic data. A production application must follow the B.C. government
+      Public Cloud Landing Zone rules and policies, and the production path may be quite different
+      (identity, networking, data residency, support model). That
+      path has not been explored yet. Plan it with the Public Cloud team before you copy anything here
+      into production.</p>
+  </blockquote>
+  <blockquote>
+    <p>Written from two setups: <a
+        href="https://github.com/KaruzaD/ai-adoption-document-intelligence/tree/944d51f9d8e692eb3016a35ab7b6a4fefb5870b0">ai-adoption-document-intelligence</a>
+      (an app
+      that runs locally and on OpenShift) and <a
+        href="https://github.com/KaruzaD/digital-marketplace-next/tree/7078cba0dfe52e0211fe8fedf654b9dfa7d41f8b">digital-marketplace-next</a>
+      (an app that runs on
+      Azure Container Apps). Items marked <strong>untested</strong> have not been run in either repository.</p>
+  </blockquote>
+  <p><a href="https://learn.microsoft.com/en-us/azure/sre-agent/overview">Azure SRE Agent</a> investigates
+    application health for you: it reads your telemetry, answers questions, reacts to alerts and runs
+    scheduled checks. This guide shows how a team connects an application to it for a dev or test
+    environment, and sets up alerting, including email.</p>
+  <h2 id="on-this-page">On this page</h2>
+  <ul>
+    <li><a href="#what-the-agent-does-and-does-not-do">What the agent does and does not do</a></li>
+    <li><a href="#choose-your-path">Choose your path</a></li>
+    <li><a href="#prerequisites-and-permissions">Prerequisites and permissions</a></li>
+    <li><a href="#path-a-application-outside-azure">Path A: application outside Azure</a></li>
+    <li><a href="#path-b-azure-native-application">Path B: Azure-native application</a></li>
+    <li><a href="#connect-the-application-to-the-agent">Connect the application to the agent</a></li>
+    <li><a href="#alerting-and-email-notifications">Alerting and email notifications</a></li>
+    <li><a href="#lessons-learned">Lessons learned</a></li>
+    <li><a href="#before-you-go-to-production">Before you go to production</a></li>
+  </ul>
+  <h2 id="what-the-agent-does-and-does-not-do">What the agent does and does not do</h2>
+  <p><strong>It does</strong></p>
+  <ul>
+    <li>Query the Azure resources you give it (Log Analytics, Application Insights, Azure Monitor
+      metrics and alerts, resource configuration) with its own managed identity.</li>
+    <li>Answer questions such as &quot;why is this service failing?&quot; and &quot;what changed in the last
+      hour?&quot;.</li>
+    <li>Pick up Azure Monitor alerts, open an investigation, and merge repeat firings of one alert rule
+      into a single thread.</li>
+    <li>Run scheduled tasks, such as a daily health check, and send summaries by Outlook, Gmail, or Teams.</li>
+    <li>Propose mitigations based on the source code you give it. In Review mode, Azure write operations wait for an SRE
+      Agent administrator.</li>
+  </ul>
+  <p><strong>It does not</strong></p>
+  <ul>
+    <li><strong>Collect or ship logs.</strong> It reads what is already in Azure. An app that is not on Azure needs a
+      shipper (Path A).</li>
+    <li><strong>Create alerts.</strong> It reacts to alert rules you define; it does not watch your app on its own.
+    </li>
+    <li><strong>See anything you did not ship.</strong> If a line was filtered out or never logged, the agent cannot
+      explain it.</li>
+    <li><strong>Gate everything behind approval.</strong> Review mode only asks for approval on Azure infrastructure
+      operations. Sending email or posting to Teams is not gated; use
+      <a href="https://learn.microsoft.com/en-us/azure/sre-agent/tool-access-policies">tool access policies or
+        hooks</a>
+      if you need a checkpoint.
+    </li>
+  </ul>
+  <p><strong>What it reads from application logs</strong></p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Where the app runs</th>
+          <th>What the agent can read</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Outside Azure</td>
+          <td>Only the columns of your custom table: whatever your shipper sends, typically a timestamp, service,
+            level, status code and the log line itself.</td>
+        </tr>
+        <tr>
+          <td>Azure Container Apps</td>
+          <td>Console and system logs in the workspace (<code>ContainerAppConsoleLogs_CL</code>,
+            <code>ContainerAppSystemLogs_CL</code>), plus Application Insights requests, exceptions, dependencies and
+            traces, and platform metrics.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The agent sends what it reads to a language model. Log lines can contain personal information, so
+    keep user data, tokens and document content out of logs it can see, and confirm your Privacy Impact
+    Assessment covers this flow.</p>
+  <h2 id="choose-your-path">Choose your path</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th></th>
+          <th>Path A: outside Azure</th>
+          <th>Path B: Azure-native</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Example</td>
+          <td><a
+              href="https://github.com/KaruzaD/ai-adoption-document-intelligence/tree/944d51f9d8e692eb3016a35ab7b6a4fefb5870b0">ai-adoption-document-intelligence</a>
+            (local, OpenShift)</td>
+          <td><a
+              href="https://github.com/KaruzaD/digital-marketplace-next/tree/7078cba0dfe52e0211fe8fedf654b9dfa7d41f8b">digital-marketplace-next</a>
+            (Container Apps)</td>
+        </tr>
+        <tr>
+          <td>How logs reach Azure</td>
+          <td>You ship a filtered copy with Fluent Bit</td>
+          <td>Built in: Container Apps to Log Analytics, and OpenTelemetry to Application Insights</td>
+        </tr>
+        <tr>
+          <td>Identity that writes logs</td>
+          <td>Entra app registration, or your own user while prototyping</td>
+          <td>None needed; the platform writes them</td>
+        </tr>
+        <tr>
+          <td>Main effort</td>
+          <td>Pipeline, filtering, and an identity request</td>
+          <td>Infrastructure as code and role assignments</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Everything below the paths (connecting the agent, alerting) applies to both.</p>
+  <h2 id="prerequisites-and-permissions">Prerequisites and permissions</h2>
+  <ul>
+    <li>An Azure subscription in your Project Set and a resource group for monitoring resources.</li>
+    <li>Azure CLI, signed in with <code>az login</code>.</li>
+    <li>Network access to <code>*.azuresre.ai</code> and <code>sre.azure.com</code>.</li>
+    <li>An SRE Agent. Create one, or reuse a team agent; see <a href="#connect-the-application-to-the-agent">Connect
+        the application to the
+        agent</a>.</li>
+  </ul>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>You need</th>
+          <th>To do</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Owner, or Contributor plus User Access Administrator, on the resource group</td>
+          <td>Create the agent and assign it roles</td>
+          <td>A conditional User Access Administrator grant limited to the roles you assign is tighter.</td>
+        </tr>
+        <tr>
+          <td>Contributor on the monitoring resource group</td>
+          <td>Create the workspace, Application Insights, alert rules, action group</td>
+          <td>Path B pipelines need this at subscription scope if they create the resource group.</td>
+        </tr>
+        <tr>
+          <td>Monitoring Metrics Publisher <strong>on the data collection rule</strong></td>
+          <td>Ship logs (Path A)</td>
+          <td>A workspace or resource-group grant returns 403.</td>
+        </tr>
+        <tr>
+          <td>An Entra app registration, if not using your own user</td>
+          <td>Ship logs from a deployed environment (Path A)</td>
+          <td>Not self-service; see Path A.</td>
+        </tr>
+        <tr>
+          <td>SRE Agent Administrator</td>
+          <td>Approve the agent&#39;s proposed actions</td>
+          <td>Only administrators can approve.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Agent creation gives the agent a user-assigned managed identity. The read roles it needs on your
+    monitoring resource group are Reader, Monitoring Reader and Log Analytics Reader. Agent creation
+    also assigns Monitoring Contributor at subscription scope so it can acknowledge and close alerts.
+    Check what your agent holds before you rely on it.</p>
+  <h3 id="landing-zone-checks">Landing Zone checks</h3>
+  <p>These can block a setup, so check them first. Raise a
+    <a href="https://citz-do.atlassian.net/servicedesk/customer/portal/3">Public Cloud Service Request</a> for any
+    exception.
+  </p>
+  <ul>
+    <li><strong>Region.</strong> The Landing Zone allows Canada Central and Canada East. Keep the workspace,
+      collection
+      endpoint, and your resources in Canada Central.</li>
+    <li><strong>Public endpoints.</strong> Policy denies many public PaaS endpoints and plain-HTTP ingress. Path A
+      needs
+      to reach the collection endpoint from outside Azure.</li>
+    <li><strong>Identity.</strong> App registrations and client secrets are exceptions, not defaults (Path A).</li>
+  </ul>
+  <h2 id="path-a-application-outside-azure">Path A: application outside Azure</h2>
+  <p>Use this when the app runs locally, on OpenShift, or anywhere else Azure cannot see.</p>
+  <pre><code>app logs ─&gt; Fluent Bit ─&gt; Data Collection Endpoint ─&gt; Data Collection Rule ─&gt; Log Analytics table
                                                                                   │
                                                                        SRE Agent queries it
 </code></pre>
-    <p>Your existing pipeline (Loki, Splunk, OpenShift logging) stays as it is. Fluent Bit runs beside it
-      and ships a filtered subset. This guide uses Fluent Bit; see <a href="#alternatives-to-fluent-bit">Alternatives to
-        Fluent
-        Bit</a> for other shippers.</p>
-    <blockquote>
-      <p><strong>Do not use the legacy HTTP Data Collector API.</strong> It was retired on 14 September 2026. It still
-        may return HTTP 200 and create tables, but ingests nothing.</p>
-    </blockquote>
-    <h3 id="step-1-create-the-azure-side">Step 1: Create the Azure side</h3>
-    <p>Set variables:</p>
-    <pre><code class="language-bash">RG=&lt;monitoring-resource-group&gt;
+  <p>Your existing pipeline (Loki, Splunk, OpenShift logging) stays as it is. Fluent Bit runs beside it
+    and ships a filtered subset. This guide uses Fluent Bit; see <a href="#alternatives-to-fluent-bit">Alternatives to
+      Fluent
+      Bit</a> for other shippers.</p>
+  <blockquote>
+    <p><strong>Do not use the legacy HTTP Data Collector API.</strong> It was retired on 14 September 2026. It still
+      may return HTTP 200 and create tables, but ingests nothing.</p>
+  </blockquote>
+  <h3 id="step-1-create-the-azure-side">Step 1: Create the Azure side</h3>
+  <p>Set variables:</p>
+  <pre><code class="language-bash">RG=&lt;monitoring-resource-group&gt;
 LOCATION=canadacentral
 WORKSPACE=&lt;workspace-name&gt;
 TABLE=MyApp_CL
 </code></pre>
-    <p>Create a Azure Log Analytics Workspace (skip if you have one), a custom table, and a Data Collection Endpoint
-      (DCE).
-      Keep the schema small; the agent only needs enough to judge health.</p>
-    <pre><code class="language-bash">az monitor log-analytics workspace create -g &quot;$RG&quot; -n &quot;$WORKSPACE&quot; -l &quot;$LOCATION&quot;
+  <p>Create a Azure Log Analytics Workspace (skip if you have one), a custom table, and a Data Collection Endpoint
+    (DCE).
+    Keep the schema small; the agent only needs enough to judge health.</p>
+  <pre><code class="language-bash">az monitor log-analytics workspace create -g &quot;$RG&quot; -n &quot;$WORKSPACE&quot; -l &quot;$LOCATION&quot;
 
 az monitor log-analytics workspace table create -g &quot;$RG&quot; --workspace-name &quot;$WORKSPACE&quot; -n &quot;$TABLE&quot; \
   --columns TimeGenerated=datetime Service=string Level=string StatusCode=int RawData=string
@@ -228,15 +229,15 @@ az monitor log-analytics workspace table create -g &quot;$RG&quot; --workspace-n
 az monitor data-collection endpoint create -g &quot;$RG&quot; -n myapp-dce -l &quot;$LOCATION&quot; \
   --public-network-access Enabled
 </code></pre>
-    <p>Public access on the DCE is the simplest option for dev and test. Whether the Landing Zone allows
-      it, or needs a private path through an Azure Monitor Private Link Scope, is a question for the
-      Public Cloud team. Record the DCE&#39;s <strong>Logs ingestion</strong> URI (<code>logsIngestion.endpoint</code>).
-    </p>
-    <p>Create the Data Collection Rule (DCR). Save this as <code>dcr.json</code>, replacing the placeholders. The
-      stream declaration must match, exactly, the fields Fluent Bit sends, and the stream must be named
-      <code>Custom-&lt;table&gt;</code>.
-    </p>
-    <pre><code class="language-json">{
+  <p>Public access on the DCE is the simplest option for dev and test. Whether the Landing Zone allows
+    it, or needs a private path through an Azure Monitor Private Link Scope, is a question for the
+    Public Cloud team. Record the DCE&#39;s <strong>Logs ingestion</strong> URI (<code>logsIngestion.endpoint</code>).
+  </p>
+  <p>Create the Data Collection Rule (DCR). Save this as <code>dcr.json</code>, replacing the placeholders. The
+    stream declaration must match, exactly, the fields Fluent Bit sends, and the stream must be named
+    <code>Custom-&lt;table&gt;</code>.
+  </p>
+  <pre><code class="language-json">{
   &quot;location&quot;: &quot;canadacentral&quot;,
   &quot;properties&quot;: {
     &quot;dataCollectionEndpointId&quot;: &quot;&lt;DCE resource ID&gt;&quot;,
@@ -266,100 +267,100 @@ az monitor data-collection endpoint create -g &quot;$RG&quot; -n myapp-dce -l &q
   }
 }
 </code></pre>
-    <pre><code class="language-bash">az monitor data-collection rule create -g &quot;$RG&quot; -n myapp-dcr -l &quot;$LOCATION&quot; --rule-file dcr.json
+  <pre><code class="language-bash">az monitor data-collection rule create -g &quot;$RG&quot; -n myapp-dcr -l &quot;$LOCATION&quot; --rule-file dcr.json
 DCR_ID=$(az monitor data-collection rule show -g &quot;$RG&quot; -n myapp-dcr --query immutableId -o tsv)
 DCR_RES_ID=$(az monitor data-collection rule show -g &quot;$RG&quot; -n myapp-dcr --query id -o tsv)
 </code></pre>
-    <p>The transform keeps the app&#39;s own timestamp when a line has one and falls back to Fluent Bit&#39;s read
-      time otherwise. DCR transforms support only a
-      <a href="https://learn.microsoft.com/en-us/azure/azure-monitor/essentials/data-collection-transformations-kql">subset
-        of KQL</a>:
-      <code>coalesce</code> fails validation with <code>InvalidTransformQuery</code>, so the transform uses
-      <code>iff</code>/<code>isnull</code>.
-      Testing the converted value, not the raw string, also stops a malformed <code>EventTime</code> from producing
-      a null timestamp and getting the record rejected.
-    </p>
-    <h3 id="step-2-choose-the-identity-that-writes-logs">Step 2: Choose the identity that writes logs</h3>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Situation</th>
-            <th>Identity</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Shipper runs on Azure compute (App Service, Container Apps, AKS, a VM)</td>
-            <td>Managed identity. No registration needed.</td>
-          </tr>
-          <tr>
-            <td>Deployed or shared, outside Azure (for example OpenShift)</td>
-            <td>Entra app registration and its service principal</td>
-          </tr>
-          <tr>
-            <td>One developer, trying it out locally</td>
-            <td>Your own user, through a loopback token broker (below)</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <p>Whichever it is, grant <strong>Monitoring Metrics Publisher on the DCR itself</strong>. A workspace-scoped or
-      resource-group-scoped grant is not enough and returns HTTP 403.</p>
-    <pre><code class="language-bash">az role assignment create --assignee &quot;&lt;client ID, or your user&#39;s object ID&gt;&quot; \
+  <p>The transform keeps the app&#39;s own timestamp when a line has one and falls back to Fluent Bit&#39;s read
+    time otherwise. DCR transforms support only a
+    <a href="https://learn.microsoft.com/en-us/azure/azure-monitor/essentials/data-collection-transformations-kql">subset
+      of KQL</a>:
+    <code>coalesce</code> fails validation with <code>InvalidTransformQuery</code>, so the transform uses
+    <code>iff</code>/<code>isnull</code>.
+    Testing the converted value, not the raw string, also stops a malformed <code>EventTime</code> from producing
+    a null timestamp and getting the record rejected.
+  </p>
+  <h3 id="step-2-choose-the-identity-that-writes-logs">Step 2: Choose the identity that writes logs</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Situation</th>
+          <th>Identity</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Shipper runs on Azure compute (App Service, Container Apps, AKS, a VM)</td>
+          <td>Managed identity. No registration needed.</td>
+        </tr>
+        <tr>
+          <td>Deployed or shared, outside Azure (for example OpenShift)</td>
+          <td>Entra app registration and its service principal</td>
+        </tr>
+        <tr>
+          <td>One developer, trying it out locally</td>
+          <td>Your own user, through a loopback token broker (below)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Whichever it is, grant <strong>Monitoring Metrics Publisher on the DCR itself</strong>. A workspace-scoped or
+    resource-group-scoped grant is not enough and returns HTTP 403.</p>
+  <pre><code class="language-bash">az role assignment create --assignee &quot;&lt;client ID, or your user&#39;s object ID&gt;&quot; \
   --role &quot;Monitoring Metrics Publisher&quot; --scope &quot;$DCR_RES_ID&quot;
 </code></pre>
-    <p>For your own user, add <code>--assignee-principal-type User</code> and use
-      <code>az ad signed-in-user show --query id -o tsv</code> for the object ID.
-    </p>
-    <p><strong>Requesting an app registration.</strong> Registrations in the B.C. government tenant are not
-      self-service. Request one through <a href="https://myservicecentre.gov.bc.ca">My Service Centre</a> and include:
-    </p>
-    <ul>
-      <li>A display name following
-        <code>&lt;org&gt;-&lt;licenceplate&gt;-&lt;env&gt;-&lt;platform&gt;-&lt;system&gt;-&lt;purpose&gt;-&lt;auth&gt;</code>,
-        for
-        example <code>citz-abc123-dev-azure-myapp-logs-secret</code>.
-      </li>
-      <li>The auth method and its justification. A client secret is an exception, so explain that Fluent
-        Bit&#39;s Logs Ingestion output authenticates with a client ID and secret.</li>
-      <li><strong>No API permissions.</strong> Access comes from the Azure role, not Graph scopes.</li>
-      <li>An owner group of at least two members, and a review date no more than 12 months away.</li>
-    </ul>
-    <p>Secrets last 180 days at most, so plan rotation before you ship. Keep the secret in Azure Key
-      Vault, or Vault for apps on OpenShift, and mount it into the Fluent Bit pod. Never commit it or put
-      it in a shared <code>.env</code>.</p>
-    <p><strong>Local prototyping with a token broker.</strong> If the registration is not approved yet, authenticate
-      Fluent Bit as yourself, using the <a
-        href="https://github.com/KaruzaD/ai-adoption-document-intelligence/blob/944d51f9d8e692eb3016a35ab7b6a4fefb5870b0/scripts/azure-token-broker.js">token
-        broker script</a>. A small loopback server runs
-      <code>az account get-access-token --resource https://monitor.azure.com</code> and returns the token as an OAuth2
-      response; Fluent Bit&#39;s <code>auth_url</code>
-      points at it instead of using a client secret. Three constraints make it work:
-    </p>
-    <ul>
-      <li><strong>Fluent Bit 5.1 or newer.</strong> Earlier versions reject <code>auth_url</code> as an unknown
-        property.</li>
-      <li><strong>Host networking</strong> on the container. The plugin allows plain HTTP for <code>auth_url</code> only
-        on a
-        loopback address, so <code>127.0.0.1</code> has to mean the host.</li>
-      <li><strong>An active <code>az login</code> session.</strong> Bind the broker to <code>127.0.0.1</code> only. When
-        conditional access
-        forces a new sign-in the broker fails and delivery pauses until you run <code>az login</code>; Fluent Bit
-        buffers and retries in the meantime.</li>
-    </ul>
-    <blockquote>
-      <p><strong>Local prototyping only.</strong> It ships logs under a personal identity and stops whenever your
-        session expires. Never use it in a shared, deployed or unattended environment, and move to an
-        app registration before anyone else relies on the data.</p>
-    </blockquote>
-    <h3 id="step-3-configure-fluent-bit">Step 3: Configure Fluent Bit</h3>
-    <p>Tail the log files, filter with a Lua script, and send with the
-      <a
-        href="https://docs.fluentbit.io/manual/data-pipeline/outputs/azure_logs_ingestion"><code>azure_logs_ingestion</code></a>
-      output. Putting each line in a <code>RawData</code> key lets the script map it onto the table columns.
-    </p>
-    <pre><code class="language-yaml">pipeline:
+  <p>For your own user, add <code>--assignee-principal-type User</code> and use
+    <code>az ad signed-in-user show --query id -o tsv</code> for the object ID.
+  </p>
+  <p><strong>Requesting an app registration.</strong> Registrations in the B.C. government tenant are not
+    self-service. Request one through <a href="https://myservicecentre.gov.bc.ca">My Service Centre</a> and include:
+  </p>
+  <ul>
+    <li>A display name following
+      <code>&lt;org&gt;-&lt;licenceplate&gt;-&lt;env&gt;-&lt;platform&gt;-&lt;system&gt;-&lt;purpose&gt;-&lt;auth&gt;</code>,
+      for
+      example <code>citz-abc123-dev-azure-myapp-logs-secret</code>.
+    </li>
+    <li>The auth method and its justification. A client secret is an exception, so explain that Fluent
+      Bit&#39;s Logs Ingestion output authenticates with a client ID and secret.</li>
+    <li><strong>No API permissions.</strong> Access comes from the Azure role, not Graph scopes.</li>
+    <li>An owner group of at least two members, and a review date no more than 12 months away.</li>
+  </ul>
+  <p>Secrets last 180 days at most, so plan rotation before you ship. Keep the secret in Azure Key
+    Vault, or Vault for apps on OpenShift, and mount it into the Fluent Bit pod. Never commit it or put
+    it in a shared <code>.env</code>.</p>
+  <p><strong>Local prototyping with a token broker.</strong> If the registration is not approved yet, authenticate
+    Fluent Bit as yourself, using the <a
+      href="https://github.com/KaruzaD/ai-adoption-document-intelligence/blob/944d51f9d8e692eb3016a35ab7b6a4fefb5870b0/scripts/azure-token-broker.js">token
+      broker script</a>. A small loopback server runs
+    <code>az account get-access-token --resource https://monitor.azure.com</code> and returns the token as an OAuth2
+    response; Fluent Bit&#39;s <code>auth_url</code>
+    points at it instead of using a client secret. Three constraints make it work:
+  </p>
+  <ul>
+    <li><strong>Fluent Bit 5.1 or newer.</strong> Earlier versions reject <code>auth_url</code> as an unknown
+      property.</li>
+    <li><strong>Host networking</strong> on the container. The plugin allows plain HTTP for <code>auth_url</code> only
+      on a
+      loopback address, so <code>127.0.0.1</code> has to mean the host.</li>
+    <li><strong>An active <code>az login</code> session.</strong> Bind the broker to <code>127.0.0.1</code> only. When
+      conditional access
+      forces a new sign-in the broker fails and delivery pauses until you run <code>az login</code>; Fluent Bit
+      buffers and retries in the meantime.</li>
+  </ul>
+  <blockquote>
+    <p><strong>Local prototyping only.</strong> It ships logs under a personal identity and stops whenever your
+      session expires. Never use it in a shared, deployed or unattended environment, and move to an
+      app registration before anyone else relies on the data.</p>
+  </blockquote>
+  <h3 id="step-3-configure-fluent-bit">Step 3: Configure Fluent Bit</h3>
+  <p>Tail the log files, filter with a Lua script, and send with the
+    <a
+      href="https://docs.fluentbit.io/manual/data-pipeline/outputs/azure_logs_ingestion"><code>azure_logs_ingestion</code></a>
+    output. Putting each line in a <code>RawData</code> key lets the script map it onto the table columns.
+  </p>
+  <pre><code class="language-yaml">pipeline:
   inputs:
     - name: tail
       alias: myapp
@@ -389,223 +390,223 @@ DCR_RES_ID=$(az monitor data-collection rule show -g &quot;$RG&quot; -n myapp-dc
       time_generated: true
       compress: true
 </code></pre>
-    <p>With the token broker, replace the three credential lines with
-      <code>auth_url: http://127.0.0.1:8899/token</code> (and placeholder <code>client_id</code> and
-      <code>client_secret</code> values),
-      and run the container with host networking. The <a
-        href="https://github.com/KaruzaD/ai-adoption-document-intelligence/blob/944d51f9d8e692eb3016a35ab7b6a4fefb5870b0/deployments/local/fluent-bit/fluent-bit.yaml">working
-        configuration</a>
-      shows the whole pipeline. Keep tail positions (<code>db</code>) on a persistent volume so a
-      restart does not re-send history.
-    </p>
-    <p><strong>Filter hard.</strong> Log Analytics bills per GB, and the agent works better on signal than on noise.
-      Keep your full stream in your primary pipeline for detailed debugging.</p>
-    <ul>
-      <li><strong>Keep</strong> warn and error lines, HTTP request records with a status of 400 or above, and
-        unstructured lines that match failure patterns (<code>Exception</code>, <code>ECONNREFUSED</code>,
-        <code>EADDRINUSE</code>).
-      </li>
-      <li><strong>Drop</strong> info and debug lines, successful requests, startup banners and hot-reload output.</li>
-      <li><strong>Strip</strong> ANSI colour codes, and set <code>Service</code>, <code>Level</code> and
-        <code>StatusCode</code> on each kept record. In
-        Fluent Bit this is a short Lua function that matches on text and returns <code>-1</code> to drop a record;
-        <a
-          href="https://github.com/KaruzaD/ai-adoption-document-intelligence/blob/944d51f9d8e692eb3016a35ab7b6a4fefb5870b0/deployments/local/fluent-bit/filters.lua"><code>filters.lua</code></a>
-        in <code>ai-adoption-document-intelligence</code>
-        is a working example.
-      </li>
-    </ul>
-    <p>Two pitfalls from real use:</p>
-    <ul>
-      <li><strong>Keep narrow noise patterns, and test keep patterns first.</strong> A loose noise pattern
-        (<code>&quot;ready in &quot;</code>)
-        silently discarded real <code>address already in use</code> errors.</li>
-      <li><strong>Do not treat a context field as an alert marker.</strong> A field such as <code>alertType</code> that
-        also
-        appears on routine lines must not force a line to be kept.</li>
-    </ul>
-    <h3 id="step-4-verify-with-a-query">Step 4: Verify with a query</h3>
-    <pre><code class="language-kusto">MyApp_CL
+  <p>With the token broker, replace the three credential lines with
+    <code>auth_url: http://127.0.0.1:8899/token</code> (and placeholder <code>client_id</code> and
+    <code>client_secret</code> values),
+    and run the container with host networking. The <a
+      href="https://github.com/KaruzaD/ai-adoption-document-intelligence/blob/944d51f9d8e692eb3016a35ab7b6a4fefb5870b0/deployments/local/fluent-bit/fluent-bit.yaml">working
+      configuration</a>
+    shows the whole pipeline. Keep tail positions (<code>db</code>) on a persistent volume so a
+    restart does not re-send history.
+  </p>
+  <p><strong>Filter hard.</strong> Log Analytics bills per GB, and the agent works better on signal than on noise.
+    Keep your full stream in your primary pipeline for detailed debugging.</p>
+  <ul>
+    <li><strong>Keep</strong> warn and error lines, HTTP request records with a status of 400 or above, and
+      unstructured lines that match failure patterns (<code>Exception</code>, <code>ECONNREFUSED</code>,
+      <code>EADDRINUSE</code>).
+    </li>
+    <li><strong>Drop</strong> info and debug lines, successful requests, startup banners and hot-reload output.</li>
+    <li><strong>Strip</strong> ANSI colour codes, and set <code>Service</code>, <code>Level</code> and
+      <code>StatusCode</code> on each kept record. In
+      Fluent Bit this is a short Lua function that matches on text and returns <code>-1</code> to drop a record;
+      <a
+        href="https://github.com/KaruzaD/ai-adoption-document-intelligence/blob/944d51f9d8e692eb3016a35ab7b6a4fefb5870b0/deployments/local/fluent-bit/filters.lua"><code>filters.lua</code></a>
+      in <code>ai-adoption-document-intelligence</code>
+      is a working example.
+    </li>
+  </ul>
+  <p>Two pitfalls from real use:</p>
+  <ul>
+    <li><strong>Keep narrow noise patterns, and test keep patterns first.</strong> A loose noise pattern
+      (<code>&quot;ready in &quot;</code>)
+      silently discarded real <code>address already in use</code> errors.</li>
+    <li><strong>Do not treat a context field as an alert marker.</strong> A field such as <code>alertType</code> that
+      also
+      appears on routine lines must not force a line to be kept.</li>
+  </ul>
+  <h3 id="step-4-verify-with-a-query">Step 4: Verify with a query</h3>
+  <pre><code class="language-kusto">MyApp_CL
 | where TimeGenerated &gt; ago(1h)
 | summarize count() by Service, Level
 </code></pre>
-    <p>Rows arrive only once something logs a warn or error, so trigger one on purpose, such as a request
-      to an unknown route. <strong>Confirm with a query, not a status code.</strong> An HTTP 204 from the ingestion API
-      does not prove the rows are queryable. The first write to a new table took about seven minutes;
-      re-query before assuming failure.</p>
-    <p>Common failures:</p>
-    <ul>
-      <li><strong>HTTP 403:</strong> Monitoring Metrics Publisher is not assigned on the DCR itself.</li>
-      <li><strong>HTTP 404:</strong> wrong DCR immutable ID, or the stream is not named
-        <code>Custom-&lt;table&gt;</code>.
-      </li>
-      <li><strong>HTTP 400 on every record:</strong> the stream declaration does not match the fields Fluent Bit sends.
-      </li>
-      <li><strong><code>unknown configuration property &#39;auth_url&#39;</code>:</strong> Fluent Bit older than 5.1.
-      </li>
-      <li><strong>No rows and no errors:</strong> the filter dropped everything. Temporarily switch the output to
-        <code>stdout</code> with <code>format: json_lines</code> to see what is sent.
-      </li>
-    </ul>
-    <h3 id="alternatives-to-fluent-bit">Alternatives to Fluent Bit</h3>
-    <p>Fluent Bit was chosen because it was already in the toolchain next to Promtail, and its
-      <code>azure_logs_ingestion</code> output speaks the supported Logs Ingestion API. Others exist; none of these
-      were tried in either repository.
-    </p>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Option</th>
-            <th>Where it fits</th>
-            <th>Watch for</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><strong>Azure Monitor Agent</strong> (custom text logs, configured by a DCR)</td>
-            <td>Apps on Azure VMs or Arc-enabled servers</td>
-            <td>Needs an Azure or Arc machine, so it does not suit containers on OpenShift or a laptop. No scripting for
-              filtering; filter in the DCR transform.</td>
-          </tr>
-          <tr>
-            <td><strong>OpenTelemetry Collector</strong> with the Azure Monitor exporter</td>
-            <td>Apps already emitting OpenTelemetry</td>
-            <td>Writes to Application Insights (a connection string), not a custom table. The agent then reads the
-              <code>traces</code>, <code>exceptions</code> and <code>requests</code> tables, as in Path B. This will not
-              give the agent access to frontend and backend logs, however, so another solution like Fluent Bit is
-              needed. Confirm your policy allows connection-string ingestion.
-            </td>
-          </tr>
-          <tr>
-            <td><strong>Instrument the app directly</strong> with the Azure Monitor OpenTelemetry distro, or the
-              <code>azure-monitor-ingestion</code> SDK
-            </td>
-            <td>You control the code and want no extra container</td>
-            <td>Couples the app to Azure and sends from the app process. The same identity and DCR rules apply to the
-              SDK.</td>
-          </tr>
-          <tr>
-            <td><strong>Logstash</strong> with the Microsoft Sentinel output plugin</td>
-            <td>Teams already running Logstash</td>
-            <td>Heavier than Fluent Bit. Check the plugin version uses a DCR.</td>
-          </tr>
-          <tr>
-            <td><strong>Vector, Fluentd, or older Log Analytics plugins</strong></td>
-            <td>Teams already running them</td>
-            <td>Many use the retired Data Collector API and now ingest nothing. Confirm the sink calls the Logs
-              Ingestion API before choosing one.</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <p>Whatever you choose, the Azure side (workspace, DCE, DCR, role on the DCR) and the &quot;filter hard&quot;
-      guidance stay the same, and you still verify with a query.</p>
-    <h2 id="path-b-azure-native-application">Path B: Azure-native application</h2>
-    <p>Use this when the app runs on Azure (here, Container Apps). Azure already collects most of what the
-      agent needs, so there is no shipper and no log-writing identity. The
-      <code>digital-marketplace-next</code> repository holds the working Bicep in <a
-        href="https://github.com/KaruzaD/digital-marketplace-next/tree/7078cba0dfe52e0211fe8fedf654b9dfa7d41f8b/infra/azure"><code>infra/azure/</code></a>
-      and the
-      decision record <a
-        href="https://github.com/KaruzaD/digital-marketplace-next/blob/7078cba0dfe52e0211fe8fedf654b9dfa7d41f8b/docs/decisions/0069-a-development-and-test-environment-runs-on-azure-container-apps.md">0069</a>.
-    </p>
-    <ol>
-      <li>
-        <p><strong>A workspace and a workspace-based Application Insights resource</strong>
-          (<a
-            href="https://github.com/KaruzaD/digital-marketplace-next/blob/7078cba0dfe52e0211fe8fedf654b9dfa7d41f8b/infra/azure/modules/monitoring.bicep"><code>modules/monitoring.bicep</code></a>).
-          Give the environment its own workspace so its data stays apart
-          from the agent&#39;s own.</p>
-      </li>
-      <li>
-        <p><strong>Send platform logs to the workspace.</strong> Set the Container Apps environment&#39;s
-          <code>appLogsConfiguration</code>
-          to <code>log-analytics</code> (<a
-            href="https://github.com/KaruzaD/digital-marketplace-next/blob/7078cba0dfe52e0211fe8fedf654b9dfa7d41f8b/infra/azure/modules/environment.bicep"><code>modules/environment.bicep</code></a>).
-          Console output then lands in the workspace with
-          no agent or sidecar.
-        </p>
-      </li>
-      <li>
-        <p><strong>Send application telemetry to Application Insights.</strong> The Node backend loads
-          <code>@azure/monitor-opentelemetry</code> first and starts it only if
-          <code>APPLICATIONINSIGHTS_CONNECTION_STRING</code> is set (<a
-            href="https://github.com/KaruzaD/digital-marketplace-next/blob/7078cba0dfe52e0211fe8fedf654b9dfa7d41f8b/app/backend/src/telemetry.ts"><code>telemetry.ts</code></a>).
-          Pass the
-          connection string to the container as a secret and set <code>OTEL_SERVICE_NAME</code>
-          (<a
-            href="https://github.com/KaruzaD/digital-marketplace-next/blob/7078cba0dfe52e0211fe8fedf654b9dfa7d41f8b/infra/azure/modules/apps.bicep"><code>modules/apps.bicep</code></a>).
-          Other runtimes have an equivalent Azure Monitor OpenTelemetry distro.
-        </p>
-      </li>
-      <li>
-        <p><strong>Expose a health endpoint (if desired)</strong> (<code>/status</code>) for both container probes and
-          an availability test.</p>
-      </li>
-      <li>
-        <p><strong>Define alert rules (if desired)</strong> (<a
-            href="https://github.com/KaruzaD/digital-marketplace-next/blob/7078cba0dfe52e0211fe8fedf654b9dfa7d41f8b/infra/azure/modules/alerts.bicep"><code>modules/alerts.bicep</code></a>):
-        </p>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Rule</th>
-                <th>Type</th>
-                <th>Fires when</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><code>status-down</code></td>
-                <td>Availability test, severity 1</td>
-                <td><code>/status</code> fails from two test locations</td>
-              </tr>
-              <tr>
-                <td><code>5xx</code></td>
-                <td>Container Apps metric, severity 2</td>
-                <td>More than five 5xx responses in 15 minutes</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </li>
-      <li>
-        <p><strong>Grant the agent read-only roles</strong> on the resource group (<a
-            href="https://github.com/KaruzaD/digital-marketplace-next/blob/7078cba0dfe52e0211fe8fedf654b9dfa7d41f8b/infra/azure/modules/agent-access.bicep"><code>modules/agent-access.bicep</code></a>):
-          Reader, Monitoring Reader and Log Analytics Reader. The Digital Marketplace pipeline then adds the
-          group to the agent&#39;s managed resources; see the next section.</p>
-      </li>
-      <li>
-        <p><strong>Deploy through a pipeline with no stored credential.</strong> The workflow
-          <a
-            href="https://github.com/KaruzaD/digital-marketplace-next/blob/7078cba0dfe52e0211fe8fedf654b9dfa7d41f8b/.github/workflows/deploy-azure.yml"><code>deploy-azure.yml</code></a>
-          signs in with GitHub OIDC as a user-assigned managed
-          identity, so nothing needs an app registration. The one-time bootstrap is documented in
-          <a
-            href="https://github.com/KaruzaD/digital-marketplace-next/blob/7078cba0dfe52e0211fe8fedf654b9dfa7d41f8b/infra/azure/README.md"><code>infra/azure/README.md</code></a>
-          because it needs rights the pipeline does not have.
-        </p>
-      </li>
-    </ol>
-    <h2 id="connect-the-application-to-the-agent">Connect the application to the agent</h2>
-    <p>Common to both paths.</p>
-    <ol>
-      <li>
-        <p><strong>Create or reuse the agent</strong> at <a
-            href="https://aka.ms/sreagent/portal">aka.ms/sreagent/portal</a>. A
-          shared team agent works; each application&#39;s resource group is attached to it. Choose the
-          <strong>Reader</strong> permission level if you do not want the agent to make any changes, and leave the run
-          mode at <strong>Review</strong>.
-        </p>
-      </li>
-      <li>
-        <p><strong>Attach the resource group</strong> that holds your workspace and alert rules: in the portal,
-          <strong>Choose
-            resource groups</strong>, or through the agent&#39;s API, which the Path B pipeline does:
-        </p>
-        <pre><code class="language-bash">url=&quot;https://management.azure.com${SRE_AGENT_ID}?api-version=2026-01-01&quot;
+  <p>Rows arrive only once something logs a warn or error, so trigger one on purpose, such as a request
+    to an unknown route. <strong>Confirm with a query, not a status code.</strong> An HTTP 204 from the ingestion API
+    does not prove the rows are queryable. The first write to a new table took about seven minutes;
+    re-query before assuming failure.</p>
+  <p>Common failures:</p>
+  <ul>
+    <li><strong>HTTP 403:</strong> Monitoring Metrics Publisher is not assigned on the DCR itself.</li>
+    <li><strong>HTTP 404:</strong> wrong DCR immutable ID, or the stream is not named
+      <code>Custom-&lt;table&gt;</code>.
+    </li>
+    <li><strong>HTTP 400 on every record:</strong> the stream declaration does not match the fields Fluent Bit sends.
+    </li>
+    <li><strong><code>unknown configuration property &#39;auth_url&#39;</code>:</strong> Fluent Bit older than 5.1.
+    </li>
+    <li><strong>No rows and no errors:</strong> the filter dropped everything. Temporarily switch the output to
+      <code>stdout</code> with <code>format: json_lines</code> to see what is sent.
+    </li>
+  </ul>
+  <h3 id="alternatives-to-fluent-bit">Alternatives to Fluent Bit</h3>
+  <p>Fluent Bit was chosen because it was already in the toolchain next to Promtail, and its
+    <code>azure_logs_ingestion</code> output speaks the supported Logs Ingestion API. Others exist; none of these
+    were tried in either repository.
+  </p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Option</th>
+          <th>Where it fits</th>
+          <th>Watch for</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Azure Monitor Agent</strong> (custom text logs, configured by a DCR)</td>
+          <td>Apps on Azure VMs or Arc-enabled servers</td>
+          <td>Needs an Azure or Arc machine, so it does not suit containers on OpenShift or a laptop. No scripting for
+            filtering; filter in the DCR transform.</td>
+        </tr>
+        <tr>
+          <td><strong>OpenTelemetry Collector</strong> with the Azure Monitor exporter</td>
+          <td>Apps already emitting OpenTelemetry</td>
+          <td>Writes to Application Insights (a connection string), not a custom table. The agent then reads the
+            <code>traces</code>, <code>exceptions</code> and <code>requests</code> tables, as in Path B. This will not
+            give the agent access to frontend and backend logs, however, so another solution like Fluent Bit is
+            needed. Confirm your policy allows connection-string ingestion.
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Instrument the app directly</strong> with the Azure Monitor OpenTelemetry distro, or the
+            <code>azure-monitor-ingestion</code> SDK
+          </td>
+          <td>You control the code and want no extra container</td>
+          <td>Couples the app to Azure and sends from the app process. The same identity and DCR rules apply to the
+            SDK.</td>
+        </tr>
+        <tr>
+          <td><strong>Logstash</strong> with the Microsoft Sentinel output plugin</td>
+          <td>Teams already running Logstash</td>
+          <td>Heavier than Fluent Bit. Check the plugin version uses a DCR.</td>
+        </tr>
+        <tr>
+          <td><strong>Vector, Fluentd, or older Log Analytics plugins</strong></td>
+          <td>Teams already running them</td>
+          <td>Many use the retired Data Collector API and now ingest nothing. Confirm the sink calls the Logs
+            Ingestion API before choosing one.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Whatever you choose, the Azure side (workspace, DCE, DCR, role on the DCR) and the &quot;filter hard&quot;
+    guidance stay the same, and you still verify with a query.</p>
+  <h2 id="path-b-azure-native-application">Path B: Azure-native application</h2>
+  <p>Use this when the app runs on Azure (here, Container Apps). Azure already collects most of what the
+    agent needs, so there is no shipper and no log-writing identity. The
+    <code>digital-marketplace-next</code> repository holds the working Bicep in <a
+      href="https://github.com/KaruzaD/digital-marketplace-next/tree/7078cba0dfe52e0211fe8fedf654b9dfa7d41f8b/infra/azure"><code>infra/azure/</code></a>
+    and the
+    decision record <a
+      href="https://github.com/KaruzaD/digital-marketplace-next/blob/7078cba0dfe52e0211fe8fedf654b9dfa7d41f8b/docs/decisions/0069-a-development-and-test-environment-runs-on-azure-container-apps.md">0069</a>.
+  </p>
+  <ol>
+    <li>
+      <p><strong>A workspace and a workspace-based Application Insights resource</strong>
+        (<a
+          href="https://github.com/KaruzaD/digital-marketplace-next/blob/7078cba0dfe52e0211fe8fedf654b9dfa7d41f8b/infra/azure/modules/monitoring.bicep"><code>modules/monitoring.bicep</code></a>).
+        Give the environment its own workspace so its data stays apart
+        from the agent&#39;s own.</p>
+    </li>
+    <li>
+      <p><strong>Send platform logs to the workspace.</strong> Set the Container Apps environment&#39;s
+        <code>appLogsConfiguration</code>
+        to <code>log-analytics</code> (<a
+          href="https://github.com/KaruzaD/digital-marketplace-next/blob/7078cba0dfe52e0211fe8fedf654b9dfa7d41f8b/infra/azure/modules/environment.bicep"><code>modules/environment.bicep</code></a>).
+        Console output then lands in the workspace with
+        no agent or sidecar.
+      </p>
+    </li>
+    <li>
+      <p><strong>Send application telemetry to Application Insights.</strong> The Node backend loads
+        <code>@azure/monitor-opentelemetry</code> first and starts it only if
+        <code>APPLICATIONINSIGHTS_CONNECTION_STRING</code> is set (<a
+          href="https://github.com/KaruzaD/digital-marketplace-next/blob/7078cba0dfe52e0211fe8fedf654b9dfa7d41f8b/app/backend/src/telemetry.ts"><code>telemetry.ts</code></a>).
+        Pass the
+        connection string to the container as a secret and set <code>OTEL_SERVICE_NAME</code>
+        (<a
+          href="https://github.com/KaruzaD/digital-marketplace-next/blob/7078cba0dfe52e0211fe8fedf654b9dfa7d41f8b/infra/azure/modules/apps.bicep"><code>modules/apps.bicep</code></a>).
+        Other runtimes have an equivalent Azure Monitor OpenTelemetry distro.
+      </p>
+    </li>
+    <li>
+      <p><strong>Expose a health endpoint (if desired)</strong> (<code>/status</code>) for both container probes and
+        an availability test.</p>
+    </li>
+    <li>
+      <p><strong>Define alert rules (if desired)</strong> (<a
+          href="https://github.com/KaruzaD/digital-marketplace-next/blob/7078cba0dfe52e0211fe8fedf654b9dfa7d41f8b/infra/azure/modules/alerts.bicep"><code>modules/alerts.bicep</code></a>):
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Rule</th>
+              <th>Type</th>
+              <th>Fires when</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>status-down</code></td>
+              <td>Availability test, severity 1</td>
+              <td><code>/status</code> fails from two test locations</td>
+            </tr>
+            <tr>
+              <td><code>5xx</code></td>
+              <td>Container Apps metric, severity 2</td>
+              <td>More than five 5xx responses in 15 minutes</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </li>
+    <li>
+      <p><strong>Grant the agent read-only roles</strong> on the resource group (<a
+          href="https://github.com/KaruzaD/digital-marketplace-next/blob/7078cba0dfe52e0211fe8fedf654b9dfa7d41f8b/infra/azure/modules/agent-access.bicep"><code>modules/agent-access.bicep</code></a>):
+        Reader, Monitoring Reader and Log Analytics Reader. The Digital Marketplace pipeline then adds the
+        group to the agent&#39;s managed resources; see the next section.</p>
+    </li>
+    <li>
+      <p><strong>Deploy through a pipeline with no stored credential.</strong> The workflow
+        <a
+          href="https://github.com/KaruzaD/digital-marketplace-next/blob/7078cba0dfe52e0211fe8fedf654b9dfa7d41f8b/.github/workflows/deploy-azure.yml"><code>deploy-azure.yml</code></a>
+        signs in with GitHub OIDC as a user-assigned managed
+        identity, so nothing needs an app registration. The one-time bootstrap is documented in
+        <a
+          href="https://github.com/KaruzaD/digital-marketplace-next/blob/7078cba0dfe52e0211fe8fedf654b9dfa7d41f8b/infra/azure/README.md"><code>infra/azure/README.md</code></a>
+        because it needs rights the pipeline does not have.
+      </p>
+    </li>
+  </ol>
+  <h2 id="connect-the-application-to-the-agent">Connect the application to the agent</h2>
+  <p>Common to both paths.</p>
+  <ol>
+    <li>
+      <p><strong>Create or reuse the agent</strong> at <a
+          href="https://aka.ms/sreagent/portal">aka.ms/sreagent/portal</a>. A
+        shared team agent works; each application&#39;s resource group is attached to it. Choose the
+        <strong>Reader</strong> permission level if you do not want the agent to make any changes, and leave the run
+        mode at <strong>Review</strong>.
+      </p>
+    </li>
+    <li>
+      <p><strong>Attach the resource group</strong> that holds your workspace and alert rules: in the portal,
+        <strong>Choose
+          resource groups</strong>, or through the agent&#39;s API, which the Path B pipeline does:
+      </p>
+      <pre><code class="language-bash">url=&quot;https://management.azure.com${SRE_AGENT_ID}?api-version=2026-01-01&quot;
 agent=$(az rest --method get --url &quot;$url&quot;)
 # The API rejects a managed-resources change that does not repeat the identity.
 body=$(jq -c --arg rg &quot;$RG_ID&quot; &#39;.properties.knowledgeGraphConfiguration as $kg
@@ -613,149 +614,149 @@ body=$(jq -c --arg rg &quot;$RG_ID&quot; &#39;.properties.knowledgeGraphConfigur
       managedResources:((($kg.managedResources // []) + [$rg]) | unique)}}}&#39; &lt;&lt;&lt; &quot;$agent&quot;)
 az rest --method patch --url &quot;$url&quot; --body &quot;$body&quot;
 </code></pre>
-        <p>The call is asynchronous; poll <code>properties.provisioningState</code> until it leaves
-          <code>InProgress</code>.
-        </p>
-      </li>
-      <li>
-        <p><strong>Confirm the agent can read the resources.</strong> Ask it to list the resources in the group and to
-          query your
-          workspace. If a query fails, assign <strong>Log Analytics Reader</strong> on the workspace.</p>
-      </li>
-      <li>
-        <p><strong>If needed, describe your data.</strong> Path A: name the custom table, list its columns, and say what
-          each
-          <code>Service</code> and <code>Level</code> value means. Path B: say which Application Insights resource and
-          which
-          Container App is the backend.
-        </p>
-      </li>
-      <li>
-        <p><strong>Start with questions</strong>, then automate:</p>
-        <ul>
-          <li>&quot;Summarise errors over the last 24 hours by service.&quot;</li>
-          <li>&quot;Which endpoints returned 5xx most often today?&quot;</li>
-          <li>&quot;Can you set up a scheduled health check that runs every morning at 8am PCT?&quot;</li>
-        </ul>
-      </li>
-      <li>
-        <p><strong>Set the run mode on every response plan and scheduled task.</strong> The agent&#39;s own default is
-          Review, but a new response plan or scheduled task defaults to <strong>Autonomous</strong>. Pick Review
-          explicitly until you trust the behaviour, and keep Autonomous for non-production only.</p>
-      </li>
-    </ol>
-    <h2 id="alerting-and-email-notifications">Alerting and email notifications</h2>
-    <p>You can add Gmail, Office 365 Outlook, and Microsoft Teams connections through the <strong>Build + Setup &gt;
-        Extensions &gt; Connectors &gt; Add Connector &gt; Notifications.</strong>
-      These require signing in to the respective accounts and granting permissions to the agent. This allows the agent
-      to read and send messages after performing scheduled tasks.</p>
-    <h3 id="what-triggers-the-agent">What triggers the agent</h3>
-    <ul>
-      <li><strong>Azure Monitor alerts.</strong> In the agent portal, <strong>Builder &gt; Incident platform</strong>
-        (On the new interface: <strong>Build + Setup &gt; Extensions &gt; Connectors</strong>), connect Azure
-        Monitor and authenticate with the agent&#39;s managed identity. The agent checks for new alerts every
-        minute and opens an investigation. <strong>Incident response plans</strong> choose which severities it takes
-        and the run mode. Path B&#39;s two alert rules qualify as they are. (Connection untested here.)</li>
-      <li><strong>Scheduled tasks.</strong> These can be created and customized through the chat interface to do health
-        checks or other tasks on specific resources/tables or a more wholistic approach. If the SRE agent is connected
-        to an email/notification service, it can also send results of the scheduled tasks through that channel.</li>
-    </ul>
-    <h2 id="lessons-learned">Lessons learned</h2>
-    <p><strong>Both setups</strong></p>
-    <ul>
-      <li><strong>Confirm with a query, not a status code.</strong> The retired Data Collector API returned 200 while
-        storing nothing. Ingestion acknowledgement is not proof.</li>
-      <li><strong>Read-only first.</strong> Both setups give the agent read roles only and keep Review mode.</li>
-      <li><strong>Say it in the agent&#39;s instructions.</strong> Custom tables are not self-describing.</li>
-      <li><strong>Synthetic data only.</strong> Both environments contain no real data, which is what makes sending
-        telemetry to a model acceptable at all.</li>
-    </ul>
-    <p><strong>From the document-intelligence setup (Path A)</strong></p>
-    <ul>
-      <li>The grant on the <strong>DCR</strong> matters. A workspace-scoped Monitoring Metrics Publisher gives 403.</li>
-      <li><strong>Fluent Bit 4.x and 5.0 reject <code>auth_url</code>.</strong> Use 5.1 or newer, with host networking,
-        or use an app
-        registration.</li>
-      <li>Missing logs were often <strong>missing log statements</strong>. Nest rejected unknown routes and 401/403s
-        before
-        the request logger ran, so those requests left no line. A small exception filter that logs them
-        at <code>warn</code> fixed the gap.</li>
-      <li><strong>Filter rules decay.</strong> An <code>alertType</code> field is not an alert marker (it also appears
-        on routine
-        lines), and a loose noise pattern (<code>&quot;ready in &quot;</code>) dropped real
-        <code>address already in use</code> errors.
-        Test keep patterns before noise patterns.
-      </li>
-      <li><strong>Two log views will disagree</strong> by design: the pipeline keeps everything, Azure keeps a subset.
-        Document where the filter rules live.</li>
-      <li>Azure Data Explorer was evaluated as a destination and rejected: it still needs an app
-        registration and adds an always-on cluster.</li>
-    </ul>
-    <p><strong>From the digital-marketplace setup (Path B)</strong></p>
-    <ul>
-      <li><strong>Use a user-assigned managed identity with a federated GitHub credential</strong> for the pipeline. No
-        app registration, no secret.</li>
-      <li><strong>Scope the pipeline&#39;s role grants.</strong> A conditional User Access Administrator limited to the
-        three
-        read roles lets the pipeline wire up the agent but nothing else.</li>
-      <li><strong>Landing Zone policy denied plain-HTTP ingress,</strong> so a separate backend app was impossible. The
-        backend runs beside the web server in one app and is reached on <code>localhost</code>.</li>
-      <li><strong>Deploy in two passes</strong> when an image needs a value that depends on the environment&#39;s
-        domain.</li>
-      <li><strong>The agent API is fussy.</strong> A managed-resources change must also name the agent&#39;s identity,
-        and
-        the update is asynchronous.</li>
-      <li><strong>Alert rules without a notification target are quiet.</strong> Add the action group when you add the
-        rules.</li>
-      <li><strong>Contributor on the agent also lets the pipeline change its mode.</strong> A custom role limited to
-        <code>Microsoft.App/agents/write</code> would be tighter. Updating managed resources with the pipeline&#39;s
-        identity is untested on the agent&#39;s own identity; if it fails authorisation, also grant Managed
-        Identity Operator on that identity.
-      </li>
-      <li>Availability tests probe from US locations, which is fine for a synthetic, public dev
-        environment and a question to raise for anything else.</li>
-    </ul>
-    <h2 id="before-you-go-to-production">Before you go to production</h2>
-    <p>These are open and need exploration with the Public Cloud team:</p>
-    <ul>
-      <li>Whether an SRE Agent hosted outside Canada is acceptable for production telemetry, and whether a
-        Canadian region becomes available.</li>
-      <li>Private connectivity: a private Azure Monitor path for log ingestion, and private reach to your
-        app, in place of public endpoints.</li>
-      <li>A production identity model (managed identity or workload identity, rotation, owner groups).</li>
-      <li>Production run mode, tool access policies and who holds SRE Agent Administrator.</li>
-      <li>Log content rules and the Privacy Impact Assessment for what the agent may read.</li>
-      <li>Cost: Log Analytics ingestion per GB and agent usage billed in Azure Agent Units.</li>
-      <li>Alert routing and on-call: who is paged, through what, and how the agent&#39;s summaries fit.</li>
-    </ul>
-    <h2 id="related-pages">Related pages</h2>
-    <ul>
-      <li><a href="https://learn.microsoft.com/en-us/azure/sre-agent/overview">Azure SRE Agent overview</a>,
-        <a href="https://learn.microsoft.com/en-us/azure/sre-agent/permissions">permissions</a>,
-        <a href="https://learn.microsoft.com/en-us/azure/sre-agent/run-modes">run modes</a>,
-        <a href="https://learn.microsoft.com/en-us/azure/sre-agent/azure-monitor-alerts">Azure Monitor alerts</a>,
-        <a href="https://learn.microsoft.com/en-us/azure/sre-agent/send-notifications">send notifications</a>
-      </li>
-      <li><a href="https://learn.microsoft.com/en-us/azure/azure-monitor/logs/tutorial-logs-ingestion-portal">Logs
-          Ingestion API tutorial</a></li>
-      <li><a href="https://developer.gov.bc.ca/docs/default/component/public-cloud-techdocs">B.C. government Public
-          Cloud technical documentation</a></li>
-      <li><a
-          href="https://developer.gov.bc.ca/docs/default/component/bc-developer-guide/security/security-and-privacy-compliance-and-guidance/">Security
-          and privacy guidance</a></li>
-      <li>In digital-marketplace-next: <a
-          href="https://github.com/KaruzaD/digital-marketplace-next/blob/7078cba0dfe52e0211fe8fedf654b9dfa7d41f8b/infra/azure/README.md"><code>infra/azure/README.md</code></a>
-        and
-        <a
-          href="https://github.com/KaruzaD/digital-marketplace-next/blob/7078cba0dfe52e0211fe8fedf654b9dfa7d41f8b/docs/decisions/0069-a-development-and-test-environment-runs-on-azure-container-apps.md">decision
-          record 0069</a>
-      </li>
-      <li>In ai-adoption-document-intelligence:
-        <a
-          href="https://github.com/KaruzaD/ai-adoption-document-intelligence/blob/944d51f9d8e692eb3016a35ab7b6a4fefb5870b0/docs-md/monitoring/AZURE_LOG_ANALYTICS_MIRROR.md"><code>AZURE_LOG_ANALYTICS_MIRROR.md</code></a>
-        (a working Fluent Bit configuration with fuller filter rules) and
-        <a
-          href="https://github.com/KaruzaD/ai-adoption-document-intelligence/blob/944d51f9d8e692eb3016a35ab7b6a4fefb5870b0/docs-md/monitoring/ALERTING.md"><code>ALERTING.md</code></a>
-      </li>
-    </ul>
+      <p>The call is asynchronous; poll <code>properties.provisioningState</code> until it leaves
+        <code>InProgress</code>.
+      </p>
+    </li>
+    <li>
+      <p><strong>Give the agent context with source code or knowledge files.</strong> If desired, give access
+        to your Github or Gitlab repos or project knowledge for better diagnostic analysis and suggestions.
+      </p>
+    </li>
+    <li>
+      <p><strong>Confirm the agent can read the resources.</strong> Ask it to list the resources in the group and to
+        query your
+        workspace. If a query fails, assign <strong>Log Analytics Reader</strong> on the workspace.</p>
+    </li>
+    <li>
+      <p><strong>If needed, describe your data.</strong> Path A: name the custom table, list its columns, and say what
+        each
+        <code>Service</code> and <code>Level</code> value means. Path B: say which Application Insights resource and
+        which
+        Container App is the backend.
+      </p>
+    </li>
+    <li>
+      <p><strong>Start with questions</strong>, then automate:</p>
+      <ul>
+        <li>&quot;Summarise errors over the last 24 hours by service.&quot;</li>
+        <li>&quot;Which endpoints returned 5xx most often today?&quot;</li>
+        <li>&quot;Can you set up a scheduled health check that runs every morning at 8am PCT?&quot;</li>
+      </ul>
+    </li>
+    <li>
+      <p><strong>Set the run mode on every response plan and scheduled task.</strong> The agent&#39;s own default is
+        Review, but a new response plan or scheduled task defaults to <strong>Autonomous</strong>. Pick Review
+        explicitly until you trust the behaviour, and keep Autonomous for non-production only.</p>
+    </li>
+  </ol>
+  <h2 id="alerting-and-email-notifications">Alerting and email notifications</h2>
+  <p>You can add Gmail, Office 365 Outlook, and Microsoft Teams connections through the <strong>Build + Setup &gt;
+      Extensions &gt; Connectors &gt; Add Connector &gt; Notifications.</strong>
+    These require signing in to the respective accounts and granting permissions to the agent. This allows the agent
+    to read and send messages after performing scheduled tasks.</p>
+  <h3 id="what-triggers-the-agent">What triggers the agent</h3>
+  <ul>
+    <li><strong>Azure Monitor alerts.</strong> In the agent portal, <strong>Builder &gt; Incident platform</strong>
+      (On the new interface: <strong>Build + Setup &gt; Extensions &gt; Connectors</strong>), connect Azure
+      Monitor and authenticate with the agent&#39;s managed identity. The agent checks for new alerts every
+      minute and opens an investigation. <strong>Incident response plans</strong> choose which severities it takes
+      and the run mode. Path B&#39;s two alert rules qualify as they are. (Connection untested here.)</li>
+    <li><strong>Scheduled tasks.</strong> These can be created and customized through the chat interface to do health
+      checks or other tasks on specific resources/tables or a more wholistic approach. If the SRE agent is connected
+      to an email/notification service, it can also send results of the scheduled tasks through that channel.</li>
+  </ul>
+  <h2 id="lessons-learned">Lessons learned</h2>
+  <p><strong>Both setups</strong></p>
+  <ul>
+    <li><strong>Confirm data arrives in the logs with a query, not a status code.</strong> The retired Data Collector
+      API returned 200 while
+      storing nothing. Ingestion acknowledgement is not proof.</li>
+  </ul>
+  <p><strong>From the document-intelligence setup (Path A)</strong></p>
+  <ul>
+    <li>The grant on the <strong>DCR</strong> matters. A workspace-scoped Monitoring Metrics Publisher gives 403.</li>
+    <li><strong>Fluent Bit 4.x and 5.0 reject <code>auth_url</code>.</strong> Use 5.1 or newer, with host networking,
+      or use an app
+      registration.</li>
+    <li>Missing logs were often <strong>missing log statements</strong>. Nest rejected unknown routes and 401/403s
+      before
+      the request logger ran, so those requests left no line. A small exception filter that logs them
+      at <code>warn</code> fixed the gap.</li>
+    <li><strong>Filter rules decay.</strong> An <code>alertType</code> field is not an alert marker (it also appears
+      on routine
+      lines), and a loose noise pattern (<code>&quot;ready in &quot;</code>) dropped real
+      <code>address already in use</code> errors.
+      Test keep patterns before noise patterns.
+    </li>
+    <li><strong>Two log views will disagree</strong> by design: the pipeline keeps everything, Azure keeps a subset.
+      Document where the filter rules live.</li>
+    <li>Azure Data Explorer was evaluated as a destination and rejected: it still needs an app
+      registration and adds an always-on cluster.</li>
+  </ul>
+  <p><strong>From the digital-marketplace setup (Path B)</strong></p>
+  <ul>
+    <li><strong>Use a user-assigned managed identity with a federated GitHub credential</strong> for the pipeline. No
+      app registration, no secret.</li>
+    <li><strong>Scope the pipeline&#39;s role grants.</strong> A conditional User Access Administrator limited to the
+      three
+      read roles lets the pipeline wire up the agent but nothing else.</li>
+    <li><strong>Landing Zone policy denied plain-HTTP ingress,</strong> so a separate backend app was impossible. The
+      backend runs beside the web server in one app and is reached on <code>localhost</code>.</li>
+    <li><strong>Deploy in two passes</strong> when an image needs a value that depends on the environment&#39;s
+      domain.</li>
+    <li><strong>The agent API is fussy.</strong> A managed-resources change must also name the agent&#39;s identity,
+      and
+      the update is asynchronous.</li>
+    <li><strong>Alert rules without a notification target are quiet.</strong> Add the action group when you add the
+      rules.</li>
+    <li><strong>Contributor on the agent also lets the pipeline change its mode.</strong> A custom role limited to
+      <code>Microsoft.App/agents/write</code> would be tighter. Updating managed resources with the pipeline&#39;s
+      identity is untested on the agent&#39;s own identity; if it fails authorisation, also grant Managed
+      Identity Operator on that identity.
+    </li>
+    <li>Availability tests probe from US locations, which is fine for a synthetic, public dev
+      environment and a question to raise for anything else.</li>
+  </ul>
+  <h2 id="before-you-go-to-production">Before you go to production</h2>
+  <p>These are open and need exploration with the Public Cloud team:</p>
+  <ul>
+    <li>Private connectivity: a private Azure Monitor path for log ingestion, and private reach to your
+      app, in place of public endpoints.</li>
+    <li>A production identity model (managed identity or workload identity, rotation, owner groups).</li>
+    <li>Production run mode, tool access policies and who holds SRE Agent Administrator.</li>
+    <li>Log content rules and the Privacy Impact Assessment for what the agent may read.</li>
+    <li>Cost: Log Analytics ingestion per GB and agent usage billed in Azure Agent Units.</li>
+    <li>Alert routing and on-call: who is paged, through what, and how the agent&#39;s summaries fit.</li>
+  </ul>
+  <h2 id="related-pages">Related pages</h2>
+  <ul>
+    <li><a href="https://learn.microsoft.com/en-us/azure/sre-agent/overview">Azure SRE Agent overview</a>,
+      <a href="https://learn.microsoft.com/en-us/azure/sre-agent/permissions">permissions</a>,
+      <a href="https://learn.microsoft.com/en-us/azure/sre-agent/run-modes">run modes</a>,
+      <a href="https://learn.microsoft.com/en-us/azure/sre-agent/azure-monitor-alerts">Azure Monitor alerts</a>,
+      <a href="https://learn.microsoft.com/en-us/azure/sre-agent/send-notifications">send notifications</a>
+    </li>
+    <li><a href="https://learn.microsoft.com/en-us/azure/azure-monitor/logs/tutorial-logs-ingestion-portal">Logs
+        Ingestion API tutorial</a></li>
+    <li><a href="https://developer.gov.bc.ca/docs/default/component/public-cloud-techdocs">B.C. government Public
+        Cloud technical documentation</a></li>
+    <li><a
+        href="https://developer.gov.bc.ca/docs/default/component/bc-developer-guide/security/security-and-privacy-compliance-and-guidance/">Security
+        and privacy guidance</a></li>
+    <li>In digital-marketplace-next: <a
+        href="https://github.com/KaruzaD/digital-marketplace-next/blob/7078cba0dfe52e0211fe8fedf654b9dfa7d41f8b/infra/azure/README.md"><code>infra/azure/README.md</code></a>
+      and
+      <a
+        href="https://github.com/KaruzaD/digital-marketplace-next/blob/7078cba0dfe52e0211fe8fedf654b9dfa7d41f8b/docs/decisions/0069-a-development-and-test-environment-runs-on-azure-container-apps.md">decision
+        record 0069</a>
+    </li>
+    <li>In ai-adoption-document-intelligence:
+      <a
+        href="https://github.com/KaruzaD/ai-adoption-document-intelligence/blob/944d51f9d8e692eb3016a35ab7b6a4fefb5870b0/docs-md/monitoring/AZURE_LOG_ANALYTICS_MIRROR.md"><code>AZURE_LOG_ANALYTICS_MIRROR.md</code></a>
+      (a working Fluent Bit configuration with fuller filter rules) and
+      <a
+        href="https://github.com/KaruzaD/ai-adoption-document-intelligence/blob/944d51f9d8e692eb3016a35ab7b6a4fefb5870b0/docs-md/monitoring/ALERTING.md"><code>ALERTING.md</code></a>
+    </li>
+  </ul>
 </main>
